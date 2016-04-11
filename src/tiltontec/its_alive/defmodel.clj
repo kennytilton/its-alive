@@ -8,7 +8,7 @@
 
 (defmacro defmodel (class directsupers slotspecs & options)
   ;;(print `(defmodel sees directsupers ,directsupers using ,(or directsupers :model-object)))
-  (assert (not (cl/find class directsupers))() "~a cannot be its own superclass" class)
+  (assert (not (cl-find class directsupers))() "%s cannot be its own superclass" class)
   `(progn
      (setf (get ',class :cell-types) nil)
      
@@ -67,20 +67,20 @@
                           (remf ias :unchanged-if)
                           ias))) (mapcar #'copy-list slotspecs))
            (:documentation
-            ~@(or (cdr (cl/find :documentation options :key #'car))
+            ~@(or (cdr (cl-find :documentation options :key #'car))
                 '("chya")))
            (:default-initargs ;; nil ok and needed: acl oddity in re not clearing d-i's sans this
-               ~@(cdr (cl/find :default-initargs options :key #'car)))
-           (:metaclass ,(or (cadr (cl/find :metaclass options :key #'car))
+               ~@(cdr (cl-find :default-initargs options :key #'car)))
+           (:metaclass ,(or (cadr (cl-find :metaclass options :key #'car))
                           'standard-class)))
        
        (defmethod shared-initialize :after ((self ,class) slot-names & iargs &key)
          (declare (ignore slot-names iargs))
          ,(when (and directsupers (not (member 'model-object directsupers)))
             `(unless (typep self 'model-object)
-               (error "If no superclass of ~a inherits directly
+               (error "If no superclass of %s inherits directly
 or indirectly from model-object, model-object must be included as a direct super-class in
-the defmodel form for ~a" ',class ',class))))
+the defmodel form for %s" ',class ',class))))
        
        ;
        ; slot accessors once class is defined...
@@ -162,9 +162,9 @@ the defmodel form for ~a" ',class ',class))))
                        (cons
                         (cond
                          ((keywordp (car spec))
-                          (assert (cl/find (car spec) '(:documentation :metaclass)))
+                          (assert (cl-find (car spec) '(:documentation :metaclass)))
                           (push spec class-options))
-                         ((cl/find (cadr spec) '(:initarg :type :ps :persistable :cell :initform :allocation :reader :writer :accessor :documentation))
+                         ((cl-find (cadr spec) '(:initarg :type :ps :persistable :cell :initform :allocation :reader :writer :accessor :documentation))
                           (push (apply 'defmd-canonicalize-slot spec) slots))
                          (t ;; shortform (slotname initform & slotdef-key-values)
                           (push (apply 'defmd-canonicalize-slot

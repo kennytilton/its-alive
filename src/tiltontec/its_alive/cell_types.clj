@@ -1,14 +1,13 @@
 (ns tiltontec.its-alive.cell-types
   (:require [tiltontec.its-alive.utility :refer :all :as ut]
-            [tiltontec.its-alive.cells :refer :all :as ns]
-            ))
+            [tiltontec.its-alive.globals :refer :all :as ns]))
 
 (comment
   (defstruct (cell (:conc-name c-))
     model
     slot-name
     value
-    inputp
+    input?
     synaptic
     (caller-store (make-fifo-queue) :type cons) ;; (C3) notify callers FIFO
     (state :nascent :type symbol) ;; :nascent, :awake, :optimized-away
@@ -29,17 +28,63 @@
     debug
     md-info))
 
+(derive ::cell ::object)
+(derive ::c-formula ::cell)
+
 (defn c-model [rc]
   (:me @rc))
 
 (defn c-slot [rc]
   (:slot @rc))
 
+(defn c-slot-name [rc]
+  (:slot @rc))
+
 (defn c-state [rc]
   (:state @rc))
 
-(defn c-val-state [rc]
-  (:val-state @rc))
+(defn c-input? [rc]
+  (:input? @rc))
+
+(defn c-rule [rc]
+  (:rule @rc))
+
+(defn c-pulse-last-changed [rc]
+  (:pulse-last-changed @rc))
+
+(defn c-pulse-observed [rc]
+  (:pulse-observed @rc))
+
+(defn c-pulse [rc]
+  (:pulse @rc))
+
+(defn c-useds [rc]
+  (:useds @rc))
+
+(defn c-optimize [rc]
+  (:optimize @rc))
+
+(defn c-value [rc]
+  (:value @rc))
+
+(defn ephemeral? [c]
+  (:ephemeral @c))
+
+(defn c-optimized-away? [c]
+  (= :optimized-away (c-state c)))
+
+(defn c-value-state [rc]
+  (case (c-value rc)
+    unbound :unbound
+    unevaluated :unevaluated
+    uncurrent :uncurrent
+    :valid))
+
+(defn c-unbound? [rc]
+  (= :unbound (c-value-state rc)))
+
+(defn c-valid? [rc]
+  (= :valid (c-value-state @rc)))
 
 (defn c-callers [rc]
   (:callers @rc))
@@ -50,11 +95,36 @@
 (defn caller-drop [used caller]
   (alter used assoc :callers (disj (c-callers used) caller)))
 
-; --- ephemerality --------------------------------------------------
-; 
 
-(defn ephemeral? [c]
-  (:ephemeral @c))
+(defn cache-state-bound-p [value-state]
+  (or (= value-state :valid)
+    (= value-state :uncurrent)))
+
+(defn cache-bound-p [c]
+  (cache-state-bound-p (c-value-state c)))
+
+
+; --- model awareness ---------------------------------
+
+(defn mdead?-dispatch [me]
+  (assert (md-ref? me))
+  [(type me)])
+
+(defmulti mdead? mdead?-dispatch)
+
+(defmethod mdead? :default [me]
+  false)
+
+(defn md-slot-value-assume-dispatch [me]
+  (assert (md-ref? me))
+  [(type me)])
+
+(defmulti md-slot-value-assume md-slot-value-assume-dispatch)
+
+(defmethod md-slot-value-assume :default [me])
+
+
+
 
 ; -----------------------------------------------------
 (comment
@@ -64,8 +134,6 @@
     (code nil :type list) ;; /// feature this out on production build
     rule))
 
-(defn c-optimized-away? [c]
-  (= :optimized-away (c-state c)))
 
 ;---------------------------
 
@@ -83,21 +151,10 @@
   (defstruct (c-drifter-absolute
               (:include c-drifter))))
 
-(defn c-useds [rc]
-  (:useds @rc))
-
-(defn c-valid? [rc]
-  (= :valid (c-val-state @rc)))
-
-(defn c-val [rc]
-  (= :valid (:val @rc)))
-
-(defn c-unbound? [rc]
-  (= unbound (c-val rc)))
 
 (comment
   (defmethod c-print-value ((c c-ruled) stream)
-    (format stream "~a" (cond ((c-valid? c) (cons (c-value c) "<vld>"))
+    (format stream "%s" (cond ((c-valid? c) (cons (c-value c) "<vld>"))
                               ((c-unbound? c) "<unb>")
                               ((not (c-current? c)) "dirty")
                               (t "<err>"))))

@@ -62,12 +62,12 @@
   new-value)
 
 (defmethod print-object ((self model) s)
-  #+shhh (format s "~a" (type-of self))
-  (format s "~a~a" (if (mdead self) "DEAD!" "")
+  #+shhh (format s "%s" (type-of self))
+  (format s "%s%s" (if (mdead? self) "DEAD!" "")
     (or (md-name self) (type-of self))))
 
 (defmethod md-name (other)
-  (trc "yep other md-name" other (type-of other))
+  (trx "yep other md-name" other (type-of other))
   other)
 
 (defmethod md-name ((nada null))
@@ -178,46 +178,46 @@
 (defn md-be-adopted (self &aux (fm-parent (fm-parent self)) (selftype (type-of self))) 
   (c-assert self)
   (c-assert fm-parent)
-  (c-assert (typep fm-parent 'family) () "fm-parent ~a offered for kid ~a not a family" fm-parent self)
+  (c-assert (typep fm-parent 'family) () "fm-parent %s offered for kid %s not a family" fm-parent self)
   
-  (trc nil "md be adopted >" :kid self (adopt-ct self) :by fm-parent)
+  (trx nil "md be adopted >" :kid self (adopt-ct self) :by fm-parent)
   
   (when (plusp (adopt-ct self))
-    (c-break "2nd adopt ~a, by ~a" self fm-parent))
+    (c-break "2nd adopt %s, by %s" self fm-parent))
 
   (incf (adopt-ct self))
-  (trc nil "getting adopted" self :by fm-parent)
+  (trx nil "getting adopted" self :by fm-parent)
   (bwhen (kid-slots-fn (kid-slots (fm-parent self)))
     (dolist (ks-def (kid-slots-fn self) self)
       (let ((slot-name (ks-name ks-def)))
-        (trc nil "got ksdef " slot-name (ks-if-missing ks-def))
+        (trx nil "got ksdef " slot-name (ks-if-missing ks-def))
         (when (md-slot-cell-type selftype slot-name)
-          (trc nil "got cell type " slot-name )
+          (trx nil "got cell type " slot-name )
           (when (or (not (ks-if-missing ks-def))
                   (and (null (c-slot-value self slot-name))
                     (null (md-slot-cell self slot-name))))
-            (trc nil "ks missing ok " slot-name)
+            (trx nil "ks missing ok " slot-name)
             (multiple-value-bind (c-or-value suppressp)
                 ((ks-rule ks-def) self)
               (unless suppressp
-                (trc nil "md-install-cell " slot-name c-or-value)
+                (trx nil "md-install-cell " slot-name c-or-value)
                 (md-install-cell self slot-name c-or-value)))))))))
 
 (defobserver .kids :around ((self family) new-kids old-kids)
   
-  (c-assert (listp new-kids) () "New kids value for ~a not listp: ~a ~a" self (type-of new-kids) new-kids)
+  (c-assert (listp new-kids) () "New kids value for %s not listp: %s %s" self (type-of new-kids) new-kids)
   (c-assert (listp old-kids))
   (c-assert (not (member nil old-kids)))
   (c-assert (not (member nil new-kids)))
 
   (loop for newk in new-kids
         unless (typep newk 'model)
-        do (break "family-kids-obs> non-model ~s typed ~s offered as kid to family ~a"
+        do (break "family-kids-obs> non-model %s typed %s offered as kid to family %s"
              newk (type-of newk) self))
 
   (loop for newk in new-kids
       unless (fm-parent newk)
-      do (break "New as of Cells3: parent ~s must be supplied to make-instance of ~s/~s"
+      do (break "New as of Cells3: parent %s must be supplied to make-instance of %s/%s"
            self newk (type-of newk)))
 
   (call-next-method))
@@ -257,29 +257,29 @@
     (setf (registry self) (make-hash-table :test 'eq))))
 
 (defmethod fm-register (self &optional (guest self))
-  (assert self () "fm-register: nil self registering ~a" guest)
+  (assert self () "fm-register: nil self registering %s" guest)
   (if (registry? self)
       (progn
-        (trc nil "fm-registering!!!!!!!!!!" (md-name guest) guest :with self)
-        (assert (registry self) () "fm-register no reg ~a" self)
+        (trx nil "fm-registering!!!!!!!!!!" (md-name guest) guest :with self)
+        (assert (registry self) () "fm-register no reg %s" self)
         (setf (gethash (md-name guest) (registry self)) guest))
     (fm-register (fm-parent self) guest)))
 
 (defmethod fm-check-out (self &optional (guest self))
-  (assert self () "oops ~a ~a ~a" self (fm-parent self) (slot-value self '.fm-parent))
+  (assert self () "oops %s %s %s" self (fm-parent self) (slot-value self '.fm-parent))
   (if (registry? self)
       (progn
-        (assert (registry self) () "fm-check-out no reg ~a" self)
-        ;; (trc "removing registered" (md-name guest) :from self)
+        (assert (registry self) () "fm-check-out no reg %s" self)
+        ;; (trx "removing registered" (md-name guest) :from self)
         (remhash (md-name guest) (registry self)))
     (bif (p (fm-parent self))
       (fm-check-out p guest)
-      (brk "oops ~a ~a ~a" self (fm-parent self) (slot-value self '.fm-parent)))))
+      (brk "oops %s %s %s" self (fm-parent self) (slot-value self '.fm-parent)))))
 
 (defmethod fm-find-registered (id self &optional (must-find? self  must-find?-supplied?))
   (or (if (registry? self)
           (progn
-            (assert (registry self) () "fm-find-registered no reg ~a" self)
+            (assert (registry self) () "fm-find-registered no reg %s" self)
             (or (gethash id (registry self))
               (prog1 nil
                 (when must-find?
@@ -290,7 +290,7 @@
     (when (and must-find? (not must-find?-supplied?))
       (loop for k being the hash-keys of (registry (fm-ascendant-if self 'registry?))
             do (print `(registered ,k)))
-      (error "fm-find-registered failed seeking ~a starting search at node ~a registry ~a" id self
+      (error "fm-find-registered failed seeking %s starting search at node %s registry %s" id self
         (fm-ascendant-if self 'registry?)))))
 
 (export! rg? rg! fm-dump-lineage)
@@ -299,7 +299,7 @@
   `(fm-find-registered ,id self nil))
 
 (defmacro rg! (id)
-  (if (cl/find id '(:buddy :coach))
+  (if (cl-find id '(:buddy :coach))
       `(fm-other? ,id)
     `(fm-find-registered ,id self)))
 

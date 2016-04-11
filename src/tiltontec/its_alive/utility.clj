@@ -1,12 +1,7 @@
-(ns com.tiltontec.jellz.utils
+(ns tiltontec.its-alive.utility
   (:require   [clojure.string :as $]))
 
 (set! *print-level* 10) ;; lose this if we lose recursive data structures
-
-;; --- Common Lisp and utils-kt holdovers ---------------
-
-(defn car [x] (first x))
-(defn cdr [x] (rest x))
 
 (defmacro prog1 [& body]
   `(let [result# ~(first body)]
@@ -17,15 +12,18 @@
   `(when-let [~var ~form]
      ~@body))
 
-(defn findx [sought coll]
+(defn cl-find [sought coll]
   (some #{sought} coll))
 
 (defmacro unless [form & body]
   `(when-not ~form
      ~@body))
 
-(defmacro ref-setf [[slot ref] new-val]
-  `(alter ~ref assoc ~slot ~new-val))
+
+(defmacro rmap-setf [[slot ref] new-value-form]
+  `(let [new-value# ~new-value-form]
+     (alter ~ref assoc ~slot new-value#)
+     new-value#))
 
 (defn type-of [x] (type x))
 
@@ -159,9 +157,9 @@
       (map (fn [[k v]] (vector k (inc v)))
            (partition 2 '(:a 0 :b 1 :c 9))))
 
-
-    
   (reduce (fn [m [k v]]
           (assoc m k (inc v)))
         (hash-map)
         (partition 2 '(:a 0 :b 1 :c 9))))
+
+:utility-ok

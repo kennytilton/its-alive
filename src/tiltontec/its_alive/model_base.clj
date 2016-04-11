@@ -1,26 +1,23 @@
-(comment
-
-    Cells -- Automatic Dataflow Managememnt
-
-
-
-)
-
+(ns tiltontec.its-alive.md-slot-value
+  (:require [tiltontec.its-alive.utility :refer :all]
+            ))
 
 ;;; --- model-object ----------------------
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (export '(md-name fm-parent .parent )))
+(comment
+  (defclass model-object ()
+    ((.md-state :initform :nascent :accessor md-state)
+     ;; [nil | :nascent | :alive | :eternal-rest]
 
-(defclass model-object ()
-  ((.md-state :initform :nascent :accessor md-state) ; [nil | :nascent | :alive | :eternal-rest]
-   (.doomed :initform nil :accessor md-doomed) ; goes t at start of not-to-be (prolly could fold into state w/ work)
-   (.fnz :initform nil  )
-   (.awaken-on-init-p :initform nil :initarg :awaken-on-init-p :accessor awaken-on-init-p)
-   (.cells :initform nil :accessor cells)
-   (.cells-flushed :initform nil :accessor cells-flushed
-                   :documentation "cells supplied but un-whenned or optimized-away")
-   (adopt-ct :initform 0 :accessor adopt-ct)))
+     (.doomed :initform nil :accessor md-doomed)
+     ;; goes t at start of not-to-be (prolly could fold into state w/ work)
+
+     (.fnz :initform nil  )
+     (.awaken-on-init-p :initform nil :initarg :awaken-on-init-p :accessor awaken-on-init-p)
+     (.cells :initform nil :accessor cells)
+     (.cells-flushed :initform nil :accessor cells-flushed
+                     :documentation "cells optimized-away")
+     (adopt-ct :initform 0 :accessor adopt-ct))))
 
 (defmethod md-finalize ((self model-object))
   (print `(:wow-fnz-non-mod ,(type-of self))))
@@ -35,12 +32,25 @@
 
 ;;; --- md obj initialization ------------------
 
+(defn md-make [typ & initargs]
+  (assert (type? typ ::model))
+  (assert (even? (count initargs)))
+  (with-meta
+    
+    (apply hash-map initargs)
+    {:type typ}))
+(defn shared-initialize-dispatch [me & initargs]
+  (type me))
+
+;;(defmulti shared-initialize [model] [me & initargs]
+  
 (defmethod shared-initialize :after ((self model-object) slotnames
                                       & initargs &key fm-parent)
-  (declare (ignorable initargs slotnames fm-parent))
-  ;(excl:schedule-finalization self 'md-finalize)
-  (setf (md-census-count self) 1) ;; bad idea if we get into reinitializing
-  (md-awake-record self)
+  ;; (declare (ignorable initargs slotnames fm-parent))
+  ;; ;(excl:schedule-finalization self 'md-finalize)
+  ;; (setf (md-census-count self) 1) ;; bad idea if we get into reinitializing
+  ;; (md-awake-record self)
+
   ;
   ; for convenience and transparency of mechanism we allow client code 
   ; to intialize a slot to a cell, but we want the slot to hold the functional
@@ -62,7 +72,7 @@
         do (if (md-slot-cell-type (type-of self) sn)
                (md-install-cell self sn sv)
              (when +c-debug+
-               (brk "warning: cell ~a offered for non-cellular model/slot ~a/~a" sv sn (type-of self)))))
+               (brk "warning: cell %s offered for non-cellular model/slot %s/%s" sv sn (type-of self)))))
     ;
     ; queue up for awakening
     ;
@@ -95,13 +105,13 @@
   ; now have the slot really be the slot
   ;
   (if c-isa-cell
-      (if (c-unboundp c)
+      (if (c-unbound? c)
           (bd-slot-makunbound self slot-name)
         (if self
             (setf (slot-value self slot-name)
-              (when (c-inputp c) (c-value c)))
+              (when (c-input? c) (c-value c)))
           (setf (symbol-value slot-name)
-            (when (c-inputp c) (c-value c)))))
+            (when (c-input? c) (c-value c)))))
     ;; note that in this else branch  "c" is a misnomer since
     ;; the value is not actually a cell
     (if self
@@ -130,7 +140,7 @@
     (princ #\.)
     (return-from md-awaken))
   
-  (trc nil "md-awaken entry" self (md-state self))
+  (trx nil "md-awaken entry" self (md-state self))
   (c-assert (eql :nascent (md-state self)))
   (count-it :md-awaken)
   ;(count-it 'mdawaken (type-of self))
@@ -147,7 +157,7 @@
           (bwhen (sv (and (slot-boundp self slot-name)
                        (slot-value self slot-name)))
             (when (typep sv 'cell)
-              (c-break "md-awaken ~a found cell ~a in slot ~a" self sv esd))))
+              (c-break "md-awaken %s found cell %s in slot %s" self sv esd))))
         
         (cond
          ((not c)
@@ -169,20 +179,20 @@
                     (> @+pulse+ (flushed-cell-pulse-observed flushed))) ;; unfrickinlikely
               #+bahhh (when (and (eq 'cells:.kids slot-name)
                       (typep self 'qxl::qx-tab-view))
-                (trc "reobserving flushed" flushed))
+                (trx "reobserving flushed" flushed))
               (when flushed
                 (setf (flushed-cell-pulse+-observed flushed) @+pulse+)) ;; probably unnecessary
               (let ((*observe-why* :flush))
-                (slot-value-observe slot-name self (bd-slot-value self slot-name) nil nil flushed)))))
+                (observe slot-name self (bd-slot-value self slot-name) nil nil flushed)))))
 
-         ((cl/find (c-lazy c) '(:until-asked :always t))
-          (trc nil "md-awaken deferring c-awaken since lazy" 
+         ((cl-find (c-lazy c) '(:until-asked :always t))
+          (trx nil "md-awaken deferring c-awaken since lazy" 
             self esd))
 
          ((eq :nascent (c-state c))
           (c-assert (c-model c) () "c-awaken sees uninstalled cell" c)
           
-          (trc nil "c-awaken > awakening" c)
+          (trx nil "c-awaken > awakening" c)
           (count-it :c-awaken)
                 
           (setf (c-state c) :awake)
@@ -223,7 +233,7 @@
   (if (numberp (cdr c))
       (rplacd c pulse+)
     (progn
-      ;; (trc "flush-pulsing" :new pulse+ :old (if (numberp (cdr c)) (cdr c) (c-pulse-observed (cdr c)))(c-slot-name c))
+      ;; (trx "flush-pulsing" :new pulse+ :old (if (numberp (cdr c)) (cdr c) (c-pulse-observed (cdr c)))(c-slot-name c))
       (setf (c-pulse+-observed (cdr c)) pulse))))
 
 #+test
@@ -301,7 +311,7 @@
 (md-slot-owning? 'cells::family '.kids)
 
 (defn md-slot-value-store (self slot-name new-value)
-  (trc nil "md-slot-value-store" self slot-name new-value)
+  (trx nil "md-slot-value-store" self slot-name new-value)
   (if self
     (setf (slot-value self slot-name) new-value)
     (setf (symbol-value slot-name) new-value)))
@@ -328,16 +338,16 @@
         ; is silently switching between implied-multiplication and mixed numbers
         ; while they type and it 
         (progn
-          (trc nil "second cell same slot:" slot-name :old entry :new new-cell)
+          (trx nil "second cell same slot:" slot-name :old entry :new new-cell)
           (let ((old (cdr entry))) ;; s/b being supplanted by kid-slotter
             (declare (ignorable old))
             (c-assert (null (c-callers old)))
             (when (typep entry 'c-dependent)
               (c-assert (null (cd-useds old))))
-            (trc nil "replacing in model .cells" old new-cell self)
+            (trx nil "replacing in model .cells" old new-cell self)
             (rplacd entry new-cell)))
         (progn
-          (trc nil "adding to model .cells" new-cell self)
+          (trx nil "adding to model .cells" new-cell self)
           (push (cons slot-name new-cell)
             (cells self))))
     (setf (get slot-name 'cell) new-cell)))

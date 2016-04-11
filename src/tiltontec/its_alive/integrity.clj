@@ -1,7 +1,7 @@
 (ns tiltontec.its-alive.integrity
-  (:require [tiltontec.its-alive.utility :refer :all :as ut]
-            [tiltontec.its-alive.cells :refer :all :as ns]))
-
+  (:require [tiltontec.its-alive.utility :refer :all]
+            [tiltontec.its-alive.globals :refer :all]
+            [tiltontec.its-alive.cell-types :refer :all]))
 
 ;; --- the pulse ------------------------------
 
@@ -15,14 +15,14 @@
           (trx "dp-next> " (inc @+pulse+) pulse-info))
       (alter +pulse+ inc)))
 
-(defn c-currentp [c]
+(defn c-current? [c]
   (= (c-pulse c) @+pulse+))
 
 (defn c-pulse-update [c key]
   (assert (>= @+pulse+ (c-pulse c))
           (format "Current DP %s not GE pulse %s of cell %s"
-                  @+pulse+ (c-pulse c) @c)
-  (alter c assoc :pulse @+pulse+)))
+                  @+pulse+ (c-pulse c) @c))
+  (alter c assoc :pulse @+pulse+))
 
 ;; --- ufb utils ----------------------------
 
@@ -31,7 +31,6 @@
                         :client
                         :ephemeral-reset
                         :change])
-
 
 (def unfin-biz
   ;; no nested finbiz allowed as of now, so just
@@ -93,8 +92,8 @@
 
         :handle-clients
         (when-let [clientq (ufb-queue :client)]
-          (if @client-queue-handler
-            (@client-queue-handler clientq)
+          (if-let [cqh @+client-q-handler+]
+            (cqh clientq)
             (ufb-do clientq :client))
           
           (recur
@@ -132,14 +131,14 @@
 
 (defn call-with-integrity [opcode defer-info action]
   (when opcode
-    (assert (findx opcode +ufb-opcodes+)
+    (assert (cl-find opcode +ufb-opcodes+)
             (format "Invalid opcode for with-integrity: %s. Allowed values: %s"
                     opcode +ufb-opcodes+)))
   (println :cwi opcode *within-integrity*)
   (un-stopped
    (dosync
     (cond
-     @*jz-stop* (println :cwi-sees-stop!!!!!!!!!!!)
+     (c-stopped) (println :cwi-sees-stop!!!!!!!!!!!)
      
      *within-integrity*
      (if opcode
@@ -160,7 +159,7 @@
      :else (binding [*within-integrity* true
                  *defer-changes* false]
              (println :bam-cwi opcode)
-             (when (or (zero? @pulse)
+             (when (or (zero? @+pulse+)
                        (= opcode :change))
                (data-pulse-next))
              (prog1
@@ -183,3 +182,4 @@
         ;; their own internal slot of model FNYI
         (alter me assoc (:slot @rc) nil))
       (alter rc assoc :val nil))))
+:integrity-ok

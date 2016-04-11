@@ -110,7 +110,7 @@
 (def ^:dynamic *fmdbg* nil)
 
 (defn make-part (partname part-class & initargs)
-  ;;(trc "make-part > name class" partname partclass)
+  ;;(trx "make-part > name class" partname partclass)
   (when part-class ;;a little programmer friendliness
     (apply #'make-instance part-class (append initargs (list :md-name partname)))))
 
@@ -158,7 +158,7 @@
                   (fm-descendant-typed k type)) (kids self)))))
 
 (defn fm-kid-named (self name)
-  (cl/find name (^kids) :key 'md-name))
+  (cl-find name (^kids) :key 'md-name))
 
 (defn fm-descendant-named (parent name &key (must-find t))
    (fm-find-one parent name :must-find must-find :global-search nil))
@@ -235,7 +235,7 @@
 
 
 (defn fm-traverse (family applied-fn &key skip-node skip-tree global-search opaque with-dependency)
-   ;;(when *fmdbg* (trc "fm-traverse" family skipTree skipNode global-search))
+   ;;(when *fmdbg* (trx "fm-traverse" family skipTree skipNode global-search))
 
    (when family
      (labels ((tv-family (fm)
@@ -304,7 +304,7 @@
 
 (defn kids-ordered (k1 k2)
   (assert (eq (fm-parent k1)(fm-parent k2)))
-  (if (cl/find k2 (member k1 (kids (fm-parent k1))))
+  (if (cl-find k2 (member k1 (kids (fm-parent k1))))
       (list k1 k2)
     (list k2 k1)))
 
@@ -322,7 +322,7 @@
 (defmacro with-like-fm-parts ((parts-var (self like-class)) & body)
    `(let (,parts-var)
        (fm-traverse ,self (fn (node)
-                              ;;(trc "with like sees node" node (type-of node) ',likeclass)
+                              ;;(trx "with like sees node" node (type-of node) ',likeclass)
                               (when (typep node ',like-class)
                                  (push node ,parts-var)))
          :skip-node ,self
@@ -392,8 +392,8 @@
           (loop for h in (fm-heritage family)
                 do (trcx heritage-ayway h))
           (fm-traverse family (fn (node)
-                                (trc "known node" (md-name node))) :global-search global-search)
-          (brk "fm-find-all > +stop+ping...did not find ~a ~a ~a" family md-name global-search)
+                                (trx "known node" (md-name node))) :global-search global-search)
+          (brk "fm-find-all > +stop+ping...did not find %s %s %s" family md-name global-search)
           ;; (error 'fm-not-found (list md-name family global-search))
           )
         matches))
@@ -455,11 +455,11 @@
              (car (cdr (member ,s (kids (fm-parent ,s))))))))
 
 (defn find-prior (self sibs &key (test #'true-that))
-  (c-assert (member self sibs) () "find-prior of ~a does not find it in sibs arg ~a" self sibs)
+  (c-assert (member self sibs) () "find-prior of %s does not find it in sibs arg %s" self sibs)
   (unless (eql self (car sibs))
     (labels
         ((fpsib (rsibs &aux (psib (car rsibs)))
-                (c-assert rsibs () "find-prior > fpsib > self ~s not found to prior off" self)
+                (c-assert rsibs () "find-prior > fpsib > self %s not found to prior off" self)
                 (if (eql self (cadr rsibs))
                    (when (test psib) psib)
                    (or (fpsib (cdr rsibs))
@@ -525,7 +525,7 @@
 
 (defn fm-kid-replace (old-kid new-kid &aux (fm-parent (fm-parent old-kid)))
      (c-assert (member old-kid (kids fm-parent)) ()
-        "~&oldkid ~s not amongst kids of its fm-parent ~s"
+        "oldkid %s not amongst kids of its fm-parent %s"
         old-kid fm-parent)
      (when fm-parent ;; silly test given above assert--which is right?
         (c-assert (typep fm-parent 'family))
@@ -610,7 +610,7 @@
 (defmacro fm^^ (scope-md-name md-name)
   (let ((scope (gensym)))
     `(let ((,scope (fm-ascendant-named self ,scope-md-name)))
-       (assert ,scope () "fm^^ unable to locate scope named ~a starting at ~a" ,scope-md-name self)
+       (assert ,scope () "fm^^ unable to locate scope named %s starting at %s" ,scope-md-name self)
        (without-c-dependency
            (fm-find-one ,scope ,md-name
              :skip-tree self
@@ -739,17 +739,17 @@
                      (eql (name-subscript md-name) (fm-pos fm)))
                    (progn
                      (when diag
-                       (trc "fm-find-one testing" fm))
+                       (trx "fm-find-one testing" fm))
                      (test fm)))
              (throw 'fm-find-one fm))))
     
-    (trc nil "fm-find-one> entry " md-name family)    
+    (trx nil "fm-find-one> entry " md-name family)    
     (let ((match (catch 'fm-find-one
                    (fm-traverse family #'matcher
                      :skip-tree skip-tree
                      :global-search global-search))))
       (when (and must-find (null match))
-        (trc "fm-find-one > erroring fm-not-found, in family: " family :seeking md-name :global? global-search)
+        (trx "fm-find-one > erroring fm-not-found, in family: " family :seeking md-name :global? global-search)
         #+shhhh
         (progn
           (describe family)
@@ -760,22 +760,22 @@
           (fm-traverse family #'matcher
             :skip-tree skip-tree
             :global-search global-search))
-        (c-break "fm-find-one > +stop+ping...did not find ~a ~a ~a" family md-name global-search)
+        (c-break "fm-find-one > +stop+ping...did not find %s %s %s" family md-name global-search)
         )
       match)))
 
 (defn fm-find-kid (self name)
-   (cl/find name (kids self) :key #'md-name))
+   (cl-find name (kids self) :key #'md-name))
 
 (defn fm-kid-typed (self type)
    (c-assert self)
-  (cl/find type (kids self) :key #'type-of))
+  (cl-find type (kids self) :key #'type-of))
 
 (defn kid-no (self)
   (unless (typep self 'model-object)
-    (brk "not a model object ~a" self))
+    (brk "not a model object %s" self))
   (when (and self (fm-parent self))
     (unless (member self (kids (fm-parent self)))
-      (c-break "kid-no self ~a not member of kids ~a of parent ~a"
+      (c-break "kid-no self %s not member of kids %s of parent %s"
         self (kids .pa) .pa))
     (position self (kids (fm-parent self)))))

@@ -19,16 +19,16 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
   (declare (ignorable c)))
 
 (defmethod awaken-cell ((c cell))
-  (assert (c-inputp c))
+  (assert (c-input? c))
   ;
   ; nothing to calculate, but every cellular slot should be output
   ;
   (when (> @+pulse+ (c-pulse-observed c))
-    ;(trc nil "awaken-pulsing" :*dpid* @+pulse+ :cdpid (c-pulse-observed c) c)
+    ;(trx nil "awaken-pulsing" :*dpid* @+pulse+ :cdpid (c-pulse-observed c) c)
     (setf (c-pulse+-observed c) @+pulse+)
-    (trc nil "awaken cell observing" c @+pulse+)
+    (trx nil "awaken cell observing" c @+pulse+)
     (let ((*observe-why* :awaken-cell))
-      (slot-value-observe (c-slot-name c) (c-model c) (c-value c) nil nil c))
+      (observe (c-slot-name c) (c-model c) (c-value c) nil nil c))
     (ephemeral-reset c)))
 
 (defmethod awaken-cell ((c c-ruled))
@@ -38,7 +38,7 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
 #+cormanlisp ; satisfy CormanCL bug
 (defmethod awaken-cell ((c c-dependent))
   (let (*depender*)
-    (trc nil "awaken-cell c-dependent clearing *depender*" c)
+    (trx nil "awaken-cell c-dependent clearing *depender*" c)
     (calculate-and-set c :fn-awaken-cell nil)))
 
 (defmethod awaken-cell ((c c-drifter))
@@ -51,6 +51,6 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
   ; at once upon instantiation 
   ;
   (calculate-and-set c :fn-awaken-cell nil)
-  (cond ((c-validp c) (c-value c))
-        ((c-unboundp c) nil)
+  (cond ((c-valid? c) (c-value c))
+        ((c-unbound? c) nil)
         (t "illegal state!!!")))

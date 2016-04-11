@@ -10,7 +10,7 @@
 ;----------------- change detection ---------------------------------
 
 (defn c-no-news (c new-value old-value)
-  ;;; (trc nil "c-no-news > checking news between" newvalue oldvalue)
+  ;;; (trx nil "c-no-news > checking news between" newvalue oldvalue)
   (bif (test (c-unchanged-test (c-model c) (c-slot-name c)))
       (test new-value old-value)
       (eql new-value old-value)))
@@ -42,18 +42,18 @@
   (let (*depender* *call-stack* ;; I think both need clearing, cuz we are neither depending nor calling when we prop to callers
         (*c-prop-depth*  (1+ *c-prop-depth*))
         (*defer-changes* t))
-    (trc nil "c.propagate clearing *depender*" c)
+    (trx nil "c.propagate clearing *depender*" c)
     
     ;------ debug stuff ---------
     ;
     (when +stop+
       (princ #\.)(princ #\!)
       (return-from c-propagate))    
-    (trc nil  "c.propagate> !!!!!!! propping" c (c-value c) :caller-ct (length (c-callers c)))
-    #+slow (trc nil "c.propagate> !!!! new value" (c-value c) :prior-value prior-value :caller-ct (length (c-callers c)) c)
+    (trx nil  "c.propagate> !!!!!!! propping" c (c-value c) :caller-ct (length (c-callers c)))
+    #+slow (trx nil "c.propagate> !!!! new value" (c-value c) :prior-value prior-value :caller-ct (length (c-callers c)) c)
     (when +c-debug+
       (when (> *c-prop-depth* 250)
-        (trc nil "c.propagate deep" *c-prop-depth* (c-model c) (c-slot-name c) #+nah c))
+        (trx nil "c.propagate deep" *c-prop-depth* (c-model c) (c-slot-name c) #+nah c))
       (when (> *c-prop-depth* 300)
         (c-break "c.propagate looping ~c" c)))
     
@@ -68,9 +68,9 @@
     ;
     (when (and prior-value
             (md-slot-owning? (type-of (c-model c)) (c-slot-name c)))
-      (trc nil "c.propagate> contemplating lost" (qci c))
+      (trx nil "c.propagate> contemplating lost" (qci c))
       (b-when lost (#-bammd set-difference #+bammd stable-set-difference (list! prior-value) (list! (c-value c)))
-        (trc nil "prop nailing owned!!!!!!!!!!!" (qci c) :lost (length lost))
+        (trx nil "prop nailing owned!!!!!!!!!!!" (qci c) :lost (length lost))
         (map nil 'not-to-be lost)))
     
     ; propagation to callers jumps back in front of client slot--value-observe handling in cells3
@@ -84,19 +84,19 @@
     (progn ;; unless (member (c-lazy c) '(t :always :once-asked)) ;; 2006-09-26 still fuzzy on this 
       (c-propagate-to-callers c callers))
     
-    (trc nil "c.propagate observing" c)
+    (trx nil "c.propagate observing" c)
 
 
     (when (or (> @+pulse+ (c-pulse-observed c))
-            (cl/find (c-lazy c) '(:once-asked :always t))) ;; messy: these can get setfed/propagated twice in one pulse+
+            (cl-find (c-lazy c) '(:once-asked :always t))) ;; messy: these can get setfed/propagated twice in one pulse+
       
       ;;;  check this with its-alive off and see if we should check here for pulse+ already done
-      ;;(trc nil ":propagate-pulsing" :*dpid* @+pulse+ :cdpid (c-pulse-observed c) c)
+      ;;(trx nil ":propagate-pulsing" :*dpid* @+pulse+ :cdpid (c-pulse-observed c) c)
       (b-if flushed (md-slot-cell-flushed (c-model c) (c-slot-name c))
         (setf (flushed-cell-pulse+-observed flushed) @+pulse+)
         (setf (c-pulse+-observed c) @+pulse+))
       (let ((*observe-why* :propagate))
-        (slot-value-observe (c-slot-name c) (c-model c)
+        (observe (c-slot-name c) (c-model c)
           (c-value c) prior-value prior-value-supplied c)))
     
     
@@ -118,8 +118,8 @@
   (when aroundp (setf args (cdr args)))
 
   #+irritating
-  (when (cl/find slotname '(value kids))
-    (warn "d: did you mean .value or .kids when you coded ~a?" slotname))
+  (when (cl-find slotname '(value kids))
+    (warn "d: did you mean .value or .kids when you coded %s?" slotname))
 
   (destructuring-bind ((&optional (self-arg 'self) (new-varg 'new-value)
                          (oldvarg 'old-value) (oldvargboundp 'old-value-boundp) (cell-arg 'c))
@@ -130,16 +130,16 @@
        ,(if (eql (last1 output-body) :test)
             (let ((temp1 (gensym))
                   (loc-self (gensym)))
-              `(defmethod slot-value-observe #-(or cormanlisp) ,(if aroundp :around 'progn)
+              `(defmethod observe #-(or cormanlisp) ,(if aroundp :around 'progn)
                  ((slotname (eql ',slotname)) ,self-arg ,new-varg ,oldvarg ,oldvargboundp ,cell-arg)
                  (let ((,temp1 (bump-output-count ,slotname))
                        (,loc-self ,(if (listp self-arg)
                                        (car self-arg)
                                      self-arg)))
                    (when (and ,oldvargboundp ,oldvarg)
-                     (format t "~&output ~d (~a ~a) old: ~a" ,temp1 ',slotname ,loc-self ,oldvarg ,cell-arg))
-                   (format t "~&output ~d (~a ~a) new: ~a" ,temp1 ',slotname ,loc-self ,new-varg ,cell-arg))))
-          `(defmethod slot-value-observe
+                     (format t "output ~d (%s %s) old: %s" ,temp1 ',slotname ,loc-self ,oldvarg ,cell-arg))
+                   (format t "output ~d (%s %s) new: %s" ,temp1 ',slotname ,loc-self ,new-varg ,cell-arg))))
+          `(defmethod observe
                #-(or cormanlisp) ,(if aroundp :around 'progn)
              ((slotname (eql ',slotname)) ,self-arg ,new-varg ,oldvarg ,oldvargboundp ,cell-arg)
              (declare (ignorable
@@ -193,40 +193,40 @@
                          (member (c-lazy caller) '(t :always :once-asked))))
           callers)
     (let ((causation (cons c *causation*))) ;; in case deferred
-      #+slow (trc nil "c.propagate-to-callers > queueing notifying callers" callers)
+      #+slow (trx nil "c.propagate-to-callers > queueing notifying callers" callers)
       (with-integrity (:tell-dependents c)
         (assert (null *call-stack*))
         (assert (null *depender*))
         ;
-        (if (mdead (c-model c))
-            (trc nil "WHOAA!!!! dead by time :tell-deps dispatched; bailing" c)
+        (if (mdead? (c-model c))
+            (trx nil "WHOAA!!!! dead by time :tell-deps dispatched; bailing" c)
           (let ((*causation* causation))
-            (trc nil "c.propagate-to-callers > actually notifying callers of" c callers)
+            (trx nil "c.propagate-to-callers > actually notifying callers of" c callers)
             #+c-debug (dolist (caller callers)
-                        (assert (cl/find c (cd-useds caller)) () "test 1 failed ~a ~a" c caller))
+                        (assert (cl-find c (cd-useds caller)) () "test 1 failed %s %s" c caller))
             #+c-debug (dolist (caller (copy-list callers)) ;; following code may modify c-callers list...
-                        (trc nil "PRE-prop-CHECK " c :caller caller (c-state caller) (c-lazy caller))
+                        (trx nil "PRE-prop-CHECK " c :caller caller (c-state caller) (c-lazy caller))
                         (unless (or (eq (c-state caller) :quiesced) ;; ..so watch for quiesced
                                   (member (c-lazy caller) '(t :always :once-asked)))
-                          (assert (cl/find c (cd-useds caller))() "Precheck Caller ~a of ~a does not have it as used" caller c)
+                          (assert (cl-find c (cd-useds caller))() "Precheck Caller %s of %s does not have it as used" caller c)
                           ))
             (dolist (caller callers)
-              (trc nil #+chill *c-prop-dep-trace* "propagating to caller iterates" c :caller caller (c-state caller) (c-lazy caller))
+              (trx nil #+chill *c-prop-dep-trace* "propagating to caller iterates" c :caller caller (c-state caller) (c-lazy caller))
               (block do-a-caller
                 (unless (or (eq (c-state caller) :quiesced) ;; ..so watch for quiesced
                           (member (c-lazy caller) '(t :always :once-asked)))
-                  (unless (cl/find c (cd-useds caller))
-                    (unless (c-optimized-away-p c) ;; c would have been removed from any c-useds
+                  (unless (cl-find c (cd-useds caller))
+                    (unless (c-optimized-away? c) ;; c would have been removed from any c-useds
                       #+shhh (progn
                                (describe caller)
                                (describe (c-model caller))
                                (describe c))
                       (cond 
-                       ((cl/find caller (c-callers c))
-                        (trc "WHOA!!!! Bailing on Known caller:" caller :w/out-this-callee-in-its-used c))
-                       (t (trc nil "Bailing on caller lost during propagation:" caller :w/out-this-callee-in-its-used c)))
+                       ((cl-find caller (c-callers c))
+                        (trx "WHOA!!!! Bailing on Known caller:" caller :w/out-this-callee-in-its-used c))
+                       (t (trx nil "Bailing on caller lost during propagation:" caller :w/out-this-callee-in-its-used c)))
                       (return-from do-a-caller)))
-                  #+slow (trc nil "propagating to caller is used" c :caller caller (c-currentp c))
+                  #+slow (trx nil "propagating to caller is used" c :caller caller (c-current? c))
                   (let ((*trc-ensure* (trcp c)))
                     ;
                     ; we just calculate-and-set at the first level of dependency because
@@ -239,7 +239,7 @@
                     ;
                     ;(ensure-value-is-current caller :prop-from c) <- next was this, but see above change reason
                     ;
-                    (unless (c-currentp caller) ; happens if I changed when caller used me in current pulse+
+                    (unless (c-current? caller) ; happens if I changed when caller used me in current pulse+
                       (calculate-and-set caller :propagate c))))))))))))
 
 (def ^:dynamic *the-unpropagated* nil)
@@ -254,7 +254,7 @@
 (defn call-with-one-datapulse+
     (f &key
       (per-cell (fn (c prior-value prior-value?)
-                  (unless (cl/find c *the-unpropagated* :key 'car)
+                  (unless (cl-find c *the-unpropagated* :key 'car)
                     (pushnew (list c prior-value prior-value?) *the-unpropagated*))))
       (finally (fn (cs)
                  (print `(finally sees ~@+pulse+ ,cs))
@@ -262,7 +262,7 @@
                        (c-propagate c prior-value prior-value?)))))
   (assert (not *one-pulse+?*))
   (data-pulse+-next :client-prop)
-  (trc "call-with-one-datapulse+ bumps pulse" @+pulse+)
+  (trx "call-with-one-datapulse+ bumps pulse" @+pulse+)
   (finally
     (let ((*one-pulse+?* t)
           (*per-cell-handler* per-cell)

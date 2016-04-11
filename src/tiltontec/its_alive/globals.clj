@@ -1,4 +1,4 @@
-(ns tiltontec.its-alive.cells
+(ns tiltontec.its-alive.globals
   (:use [tiltontec.its-alive.utility :refer :all]))
 
 (comment
@@ -12,14 +12,18 @@
 (def +pulse+ (ref 0))
 (def ^:dynamic *causation* '())
 (def ^:dynamic *call-stack* nil)
-(def ^:dynamic *depender* nil)
+(def ^:dynamic *depender* nil) 
 ;; 2008-03-15: *depender* let's us differentiate between the call stack and
 ;; and dependency. The problem with overloading *call-stack* with both roles
 ;; is that we miss cyclic reentrance when we use without-c-dependency in a 
 ;; rule to get "once" behavior or just when fm-traversing to find someone
+
 (def ^:dynamic *defer-changes* false)
 (def +client-q-handler+ (atom nil))
 (defonce unbound (gensym "unbound-cell-value"))
+(defonce unevaluated (gensym "unevaluated-formulaic-value"))
+(defonce uncurrent (gensym "uncurrent-formulaic-value"))
+
 
 (def ^:dynamic *istack* nil)
 (def ^:dynamic *not-to-be* false)
@@ -29,7 +33,8 @@
 
 
 ;; --- debug stuff -----------------------------
-(def ^:dynamic *finbiz-id* 0) ;; debugging tool only
+(ns-unmap *ns* '*observe-why*)
+(def ^:dynamic *finbiz-id* 0)
 (def ^:dynamic *c-prop-depth* 0)
 
 (def +c-debug+ (atom false))
@@ -53,23 +58,28 @@
 
 ;; --- types -------------------------
 
-(def types (-> (make-hierarchy)
-               (derive :czi :cz)
-               (derive :czf :cz)
-               (derive :model :object)))
+;; (def cz-types (-> (make-hierarchy)
+;;                (derive :czi :cz)
+;;                (derive :czf :cz)
+;;                (derive :model :object)))
+
+(derive ::cell ::object)
+(derive ::c-ruled ::cell)
+(derive ::c-depedent ::c-ruled)
+(derive ::model ::object)
 
 (defn type? [it typ]
-  (isa? types (type it) typ))
+  (isa? (type it) typ))
 
-(defn cz-ref? [x]
+(defn c-ref? [x]
   (and (instance? clojure.lang.Ref x)
-       (type? @x :cz)))
+       (type? @x ::cell)))
 
 ;; --- defmodel rizing ---------------------
  
 (defn md-ref? [x]
   (and (instance? clojure.lang.Ref x)
-       (isa? (type @x) ::tiltontec.its-alive.cells/model)))
+       (isa? (type @x) ::model)))
 
 ;; --- 19000 ----------------------------------
 
@@ -118,7 +128,7 @@
 ;;      (unless ,assertion
 ;;        ,(if fmt$
 ;;             `(c-warn ,fmt$ ~@fmt-args)
-;;           `(c-warn "failed assertion: ~a" ',assertion)))))
+;;           `(c-warn "failed assertion: %s" ',assertion)))))
 
 ;; (defmacro def-c-trace (model-type &optional slot cell-type)
 ;;   `(defmethod trcp ((self ,(case cell-type
@@ -129,7 +139,6 @@
 ;;             `(eq (c-slot-name self) ',slot)
 ;;           `t))))
 
-
 ; -------- cell conditions (not much used) ---------------------------------------------
 
 (comment ;; (define-condition xcell () ;; new 2k0227
@@ -138,7 +147,7 @@
    (error-text :initarg :error-text :reader error-text :initform "<???>")
    (other-data :initarg :other-data :reader other-data :initform "<nootherdata>"))
   (:report (fn (c s)
-             (format s "~& trouble with cell ~a in function ~s,~s: ~s"
+             (format s " trouble with cell %s in function %s,%s: %s"
                (cell c) (app-func c) (error-text c) (other-data c)))))
 
 (comment ;; (define-condition c-enabling ()
@@ -146,18 +155,18 @@
     (model :initarg :model :reader model)
     (cell :initarg :cell :reader cell))
    (:report (fn (condition stream)
-                 (format stream "~&unhandled <c-enabling>: ~s" condition)
-                 (brk "~&i say, unhandled <c-enabling>: ~s" condition))))
+                 (format stream "unhandled <c-enabling>: %s" condition)
+                 (brk "i say, unhandled <c-enabling>: %s" condition))))
 
 (comment ;; (define-condition c-fatal (xcell)
    ((name :initform :anon :initarg :name :reader name)
     (model :initform nil :initarg :model :reader model)
     (cell :initform nil :initarg :cell :reader cell))
 Kennet   (:report (fn (condition stream)
-              (format stream "~&fatal cell programming error: ~s" condition)
-              (format stream "~&  : ~s" (name condition))
-              (format stream "~&  : ~s" (model condition))
-              (format stream "~&  : ~s" (cell condition)))))
+              (format stream "fatal cell programming error: %s" condition)
+              (format stream "  : %s" (name condition))
+              (format stream "  : %s" (model condition))
+              (format stream "  : %s" (cell condition)))))
 
 (comment ;; (define-condition asker-midst-askers (c-fatal)
   ())
@@ -166,8 +175,8 @@ Kennet   (:report (fn (condition stream)
 (comment ;; (define-condition c-unadopted (c-fatal) ()
    (:report
     (fn (condition stream)
-      (format stream "~&unadopted cell >: ~s" (cell condition))
-      (format stream "~& >: often you mis-edit (c? (c? ...)) nesting is error"))))
+      (format stream "unadopted cell >: %s" (cell condition))
+      (format stream " >: often you mis-edit (c? (c? ...)) nesting is error"))))
 
 
 :cells-ok

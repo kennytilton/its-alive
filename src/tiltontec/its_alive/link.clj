@@ -9,14 +9,14 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
 )
 
 
-(defn record-caller (used)
+(defn record-dependency (used)
   (assert used)
-  (when (c-optimized-away-p used) ;; 2005-05-21 removed slow type check that used is cell
-    (trc nil "depender not being recorded because used optimized away" *depender* (c-value used) :used used)
-    (return-from record-caller nil))
-  #+shhh (trc *depender* "record-caller depender entry: used=" used :caller *depender*)
+  (when (c-optimized-away? used) ;; 2005-05-21 removed slow type check that used is cell
+    (trx nil "depender not being recorded because used optimized away" *depender* (c-value used) :used used)
+    (return-from record-dependency nil))
+  #+shhh (trx *depender* "record-dependency depender entry: used=" used :caller *depender*)
   (assert *depender*)
-  #+shhh (trc used "record-caller caller entry: used=" (qci used)
+  #+shhh (trx used "record-dependency caller entry: used=" (qci used)
     :caller *depender*)
   
   (multiple-value-bind (used-pos useds-len)
@@ -30,7 +30,7 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
           finally (return (values (when u-pos (- length u-pos)) length)))
 
     (when (null used-pos)
-      (trc nil "c-link > new caller,used " *depender* used)
+      (trx nil "c-link > new caller,used " *depender* used)
       (count-it :new-used)
       (setf used-pos useds-len)
       (push used (cd-useds *depender*))
@@ -44,13 +44,13 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
   used)
 
 (defn set-usage-bit (c n) ;; c is caller
-  ;(trc c "set-usage-bit entry!!!!" c n (array-dimension (cd-usage c) 0))
+  ;(trx c "set-usage-bit entry!!!!" c n (array-dimension (cd-usage c) 0))
   #+xxxx(when (> n 32)
     (loop for u in (cd-useds c)
-          do (trc "sub-used" u))
-    (trc "set-usage-bit entry > 10!!!!" c n (array-dimension (cd-usage c) 0)))
+          do (trx "sub-used" u))
+    (trx "set-usage-bit entry > 10!!!!" c n (array-dimension (cd-usage c) 0)))
   (unless (< n (array-dimension (cd-usage c) 0))
-    ;(trc c "set-usage-bit growing!!!!!" c n (+ n 16))
+    ;(trx c "set-usage-bit growing!!!!!" c n (+ n 16))
     (setf (cd-usage c)(adjust-array (cd-usage c) (+ n 16) :initial-element 0)))
   (setf (sbit (cd-usage c) n) 1))
 
@@ -68,11 +68,11 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
                                 (zerop (sbit usage rpos)))
                               (progn
                                 (count-it :unlink-unused)
-                                (trc nil "c-unlink-unused" c :dropping-used (car useds))
+                                (trx nil "c-unlink-unused" c :dropping-used (car useds))
                                 (c-unlink-caller (car useds) c)
                                 (rplaca useds nil))
                             (progn
-                              ;; moved into record-caller 060604 (caller-ensure (car useds) c)
+                              ;; moved into record-dependency 060604 (caller-ensure (car useds) c)
                               )
                             )))
                    (if (cdr useds)
@@ -80,15 +80,15 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
                          (nail-unused (cdr useds))
                          (handle-used (incf rev-pos)))
                      (handle-used (setf rev-pos 0))))))
-        (trc nil "cd-useds length" (length (cd-useds c)) c)
+        (trx nil "cd-useds length" (length (cd-useds c)) c)
         
         (nail-unused (cd-useds c))
         (setf (cd-useds c) (delete nil (cd-useds c)))
-        (trc nil "useds of" c :now (mapcar 'qci (cd-useds c)))))))
+        (trx nil "useds of" c :now (mapcar 'qci (cd-useds c)))))))
 
 (defn c-caller-path-exists-p (from-used to-caller)
   (count-it :caller-path-exists-p)
-  (or (cl/find to-caller (c-callers from-used))
+  (or (cl-find to-caller (c-callers from-used))
     (find-if (fn (from-used-caller)
                (c-caller-path-exists-p from-used-caller to-caller))
       (c-callers from-used))))
@@ -103,7 +103,7 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
                      
 (defmethod c-unlink-from-used ((caller c-dependent))
   (dolist (used (cd-useds caller))
-    (trc nil "unlinking from used" caller used)
+    (trx nil "unlinking from used" caller used)
     (c-unlink-caller used caller))
   ;; shouldn't be necessary (setf (cd-useds caller) nil)
   )
@@ -114,7 +114,7 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
 ;----------------------------------------------------------
 
 (defn c-unlink-caller (used caller)
-  (trc nil "(1) caller unlinking from (2) used" caller used)
+  (trx nil "(1) caller unlinking from (2) used" caller used)
   (caller-drop used caller)
   (c-unlink-used caller used))
 
@@ -124,15 +124,15 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
 ;----------------- link debugging ---------------------
 
 (defn dump-callers (c &optional (depth 0))
-     (format t "~&~v,4t~s" depth c)
+     (format t "~v,4t%s" depth c)
      (dolist (caller (c-callers c))
           (dump-callers caller (+ 1 depth))))
 
 (defn dump-useds (c &optional (depth 0))
      ;(c.trc "dump-useds> entry " c (+ 1 depth))
      (when (zerop depth)
-          (format t "x~&"))
-     (format t "~&|usd> ~v,8t~s" depth c)
+          (format t "x"))
+     (format t "|usd> ~v,8t%s" depth c)
      (when (typep c 'c-ruled)
           ;(c.trc "its ruled" c)
           (dolist (used (cd-useds c))

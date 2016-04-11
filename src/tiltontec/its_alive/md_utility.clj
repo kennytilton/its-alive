@@ -16,10 +16,10 @@
 (defmethod md-release (other)
   (declare (ignorable other)))
 
-(export! mdead)
+(export! mdead?)
 ;___________________ birth / death__________________________________
   
-(defgeneric mdead (self)
+(defgeneric mdead? (self)
   (:method ((self model-object))
     (unless *not-to-be* ;; weird - let's folks function for not-to-be cleanup
       (eq :eternal-rest (md-state self))))
@@ -64,7 +64,7 @@
       
       (flet ((gok ()
                (if (md-shuffling-off self)
-                   (trc nil "n2be bailing on already dead or doomed" self (md-state self)(md-doomed self))
+                   (trx nil "n2be bailing on already dead or doomed" self (md-state self)(md-doomed self))
                  (progn
                    ;(trx not-to-be!!!!!!! self)
                    (setf (md-doomed self) t)
@@ -76,7 +76,7 @@
                    (md-map-cells self nil
                      (fn [c]
                        (c-warn? (eq :quiesced (c-state c)) ()
-                         "Cell ~a of dead model ~a not quiesced. Was not-to-be shadowed by
+                         "Cell %s of dead model %s not quiesced. Was not-to-be shadowed by
  a primary method? Use :before instead." c self))) ;; fails if user obstructs not.to-be with primary method (use :before etc)
                    
                    ))))
@@ -85,7 +85,7 @@
           (wtrc (0 100 "not.to-be nailing" self (when (typep self 'family)
                                                   (mapcar 'type-of (slot-value self '.kids))))
             (gok)
-            (when dbg (trc "finished nailing" self))))))))
+            (when dbg (trx "finished nailing" self))))))))
 
 (defn md-shuffling-off (self)
   (or (eq (md-state self) :eternal-rest)
@@ -95,10 +95,10 @@
 
 (defn md-quiesce (self)
   #+xxxx (unless (search "QX-" (string (md-name self)))
-    (trc "md-quiescing" self (type-of self)(type-of (fm-parent self))))
+    (trx "md-quiescing" self (type-of self)(type-of (fm-parent self))))
   (md-map-cells self nil (fn [c]
-                           (trc nil "quiescing" c)
-                           (c-warn? (not (cl/find c *call-stack*)))
+                           (trx nil "quiescing" c)
+                           (c-warn? (not (cl-find c *call-stack*)))
                            (c-quiesce c)))
   (when (register? self)
     (fm-check-out self)))
@@ -106,11 +106,11 @@
 (defn c-quiesce [c]
   (typecase c
     (cell 
-     (trc nil "c-quiesce unlinking" c)
+     (trx nil "c-quiesce unlinking" c)
      (c-unlink-from-used c)
      (dolist (caller (c-callers c))
        (setf (c-value-state caller) :uncurrent)
-       (trc nil "c-quiesce totlalaly unlinking caller and making uncurrent" .dpid :q c :caller caller)
+       (trx nil "c-quiesce totlalaly unlinking caller and making uncurrent" .dpid :q c :caller caller)
        (c-unlink-caller c caller))
      (setf (c-state c) :quiesced) ;; 20061024 for debugging for now, might break some code tho
      )))
@@ -122,7 +122,7 @@
     `(let ((,c ,class))
        (make-instance ,c
          ~@ia
-         :fm-parent (progn (assert self () "make-kid: self nil making ~a" ,c)
+         :fm-parent (progn (assert self () "make-kid: self nil making %s" ,c)
                       self)))))
 
 (def ^:dynamic *c-d-d*)
@@ -140,7 +140,7 @@
     (incf (gethash (type-of self) *model-pop* 0) delta)
     #-gogo
     (when (minusp (gethash (type-of self) *model-pop* 0))
-      (warn  "minus pop ~a" self))))
+      (warn  "minus pop %s" self))))
 
 (defn md-census-report ()
   (when *model-pop*
@@ -151,7 +151,7 @@
                      *model-pop*)
                    raw) '< :key 'car)
         unless (zerop ct)
-        do (trc "pop" ct type))))
+        do (trx "pop" ct type))))
 
 #+test
 (md-census-report)
@@ -181,7 +181,7 @@
                      
                      (model
                       (when (zerop (mod (incf ccc) 100))
-                        (trc "cc" (md-name self) (type-of self)))
+                        (trx "cc" (md-name self) (type-of self)))
                       (count-it! :thing)
                       (count-it! :thing (type-of self))
                       
@@ -198,7 +198,7 @@
                                  #+chill (loop repeat (length (c-useds c))
                                              do (count-it! :cell-useds)
                                                (count-it! :dep-depth (c-depend-depth c))))
-                                (otherwise (if (c-inputp c)
+                                (otherwise (if (c-input? c)
                                                (progn
                                                  (count-it! :c-input-altogether)
                                                  ;(count-it! :c-input id)
@@ -227,15 +227,15 @@
                  (when (and (not (c-useds c))
                          (> depth *max-d-d*))
                    (setf *max-d-d* depth)
-                   (trc "new dd champ from user"  depth :down-to c)
+                   (trx "new dd champ from user"  depth :down-to c)
                    (when (= depth 41)
-                     (trc "end at" (c-slot-name c) :of (type-of (c-model c)))
+                     (trx "end at" (c-slot-name c) :of (type-of (c-model c)))
                      (loop for c in chain do
-                           (trc "called by" (c-slot-name c) :of (type-of (c-model c))))))
+                           (trx "called by" (c-slot-name c) :of (type-of (c-model c))))))
                  (setf (gethash c *c-d-d*)
-                   ;(brk "c-depend-depth ~a" c)
+                   ;(brk "c-depend-depth %s" c)
                    (progn
-                     ;(trc "dd" c)
+                     ;(trx "dd" c)
                      (1+ (loop for u in (c-useds c)
                              maximizing (cdd u (1+ depth) (cons c chain))))))))
         (cdd ctop)))))

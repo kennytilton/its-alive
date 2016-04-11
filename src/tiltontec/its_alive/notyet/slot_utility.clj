@@ -11,24 +11,24 @@
   (declare (ignorable new-value))
   (cond
    ((null c)
-    (format t "c-setting-debug > constant  ~a in ~a may not be altered..init to (c-in nil)"
+    (format t "c-setting-debug > constant  %s in %s may not be altered..init to (c-in nil)"
       slot-name self)
         
     (c-break "setting-const-cell")
     (error "setting-const-cell"))
-   ((c-inputp c))
+   ((c-input? c))
    (t
     (let ((self (c-model c))
           (slot-name (c-slot-name c)))
-      ;(trc "c-setting-debug sees" c newvalue self slot-name)
+      ;(trx "c-setting-debug sees" c newvalue self slot-name)
       (when (and c (not (and slot-name self)))
         ;; cv-test handles errors, so don't set +stop+ (c-stop)
-        (c-break "unadopted ~a for self ~a spec ~a" c self slot-name)
+        (c-break "unadopted %s for self %s spec %s" c self slot-name)
         (error 'c-unadopted :cell c))
       #+whocares (typecase c
         (c-dependent
-         ;(trc "setting c-dependent" c newvalue)
-         (format t "c-setting-debug > ruled  ~a in ~a may not be setf'ed"
+         ;(trx "setting c-dependent" c newvalue)
+         (format t "c-setting-debug > ruled  %s in %s may not be setf'ed"
            (c-slot-name c) self)
          
          (c-break "setting-ruled-cell")
