@@ -181,5 +181,5 @@
         ;; presumption next is that model cells live in
         ;; their own internal slot of model FNYI
         (alter me assoc (:slot @rc) nil))
-      (alter rc assoc :val nil))))
+      (alter rc assoc :value nil))))
 :integrity-ok

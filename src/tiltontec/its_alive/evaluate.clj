@@ -1,5 +1,3 @@
-
-
 (ns tiltontec.its-alive.evaluate
   (:require [tiltontec.its-alive.utility :refer :all]
             [tiltontec.its-alive.globals :refer :all]

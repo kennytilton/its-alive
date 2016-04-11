@@ -1,29 +1,29 @@
 (ns tiltontec.its-alive.constructor
   (:require [tiltontec.its-alive.utility :refer :all]
             [tiltontec.its-alive.globals :refer :all]
-            [tiltontec.its-alive.cell-types :refer :all]
+            [tiltontec.its-alive.cell-types :refer :all as cty]
             [tiltontec.its-alive.observer :refer :all]
             [tiltontec.its-alive.integrity :refer :all]))
-
+;; (ns-unmap *ns* 'c-model)
 (set! *print-level* 3)
 
-(defn make-c-input  
-  ([]
-   (make-c-input nil))
+;; (defn make-c-input  
+;;   ([]
+;;    (make-c-input nil))
 
-  ([val]
-   (make-c-input {} val))
+;;   ([val]
+;;    (make-c-input {} val))
 
-  ([options val]
-   (ref (with-meta
-          (assoc options :value val
-                 :input? true
-                 :pulse 0 ;; hhack try init thid and last-changed to current pulse
-                 :pulse-last-changed 0
-                 :pulse-observed 0
-                 :state :valid
-                 :callers {})
-          {:type :jzi}))))
+;;   ([options val]
+;;    (ref (with-meta
+;;           (assoc options :value val
+;;                  :input? true
+;;                  :pulse 0 ;; hhack try init this and last-changed to current pulse
+;;                  :pulse-last-changed 0
+;;                  :pulse-observed 0
+;;                  :state :valid
+;;                  :callers {})
+;;           {:type ::cty/cell}))))
 
 (defn make-cell [& kvs]
   (let [options (apply hash-map kvs)]
@@ -35,12 +35,12 @@
                :pulse-last-changed 0
                :pulse-last-observed 0
                :callers #{}
-               :lazy false
+               :lazy false ;; not a predicate (can hold, inter alia, :until-asked)
                :ephemeral? false
                :input? true
               }
               options)
-       {:type :c-input}))))
+       {:type :cell}))))
 
 (defn make-c-dependent [& kvs]
   (let [options (apply hash-map kvs)
@@ -62,7 +62,7 @@
                :input? false ;; not redundant: can start with rule, continue as input
               }
               options)
-       {:type :c-dependent}))))
+       {:type :c-formula}))))
 
 (set! *print-level* 2)
 

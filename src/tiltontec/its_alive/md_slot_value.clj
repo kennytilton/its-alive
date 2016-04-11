@@ -112,7 +112,7 @@
         
             ;; --- data flow propagation -----------
             (unless (eq propagation-code :no-propagate)
-                    (c-propagate c prior-value (cache-state-bound-p prior-state) callers))) 
+                    (c-propagate c prior-value callers))) 
 
           absorbed-value))))
 

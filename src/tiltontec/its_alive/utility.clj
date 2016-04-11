@@ -19,15 +19,26 @@
   `(when-not ~form
      ~@body))
 
+(defn type-of [x] (type x))
+
+;; --- refs with maps conveniences -------------------
+
+(defmacro def-rmap-slots [reader-prefix & slots]
+  `(do
+     ~@(map (fn [slot#]
+              `(defn ~(symbol (str (or reader-prefix "")
+                                   slot#))
+                 [~'ref]
+                 (~(keyword slot#) @~'ref))) slots)))
 
 (defmacro rmap-setf [[slot ref] new-value-form]
   `(let [new-value# ~new-value-form]
      (alter ~ref assoc ~slot new-value#)
      new-value#))
 
-(defn type-of [x] (type x))
-
 ;; --- error handling -----------------
+
+(ns-unmap *ns* 'c-model)
 
 (defn error
   ([msg] (throw (Exception. msg)))
@@ -35,7 +46,6 @@
               (if (fn? m1)
                    (apply m1 mr)
                    ($/join " " (cons m1 mr))))))
-
 
 (do
   (defmulti err (fn [a1 & args] (fn? a1)))
@@ -85,12 +95,12 @@
       (> *trxdepth* ~hi)
       (throw (Exception. (str
                           (format "wtrx exceeded max(%d): " ~hi)
-                          (call-trc$ ~(first trxargs)
+                          (call-trc$ '~(first trxargs)
                                      (list ~@(rest trxargs)))))))
      ~@body))
 
 #_
-(binding [*trxdepth* 20]
+(binding [*trxdepth* 5]
   (wtrx (0 100 "cool" 1 2 3)
         (println :body)))
 
@@ -98,6 +108,10 @@
   (wtrx (0 10 "test" n)
         (when (> n 0)
           (wtrx-test (dec n)))))
+
+(println
+ (with-out-str
+  (wtrx-test 2)))
 
 ;; --- deftest support ---------------------
 ;; These next two are lame because they just
@@ -107,7 +121,7 @@
 ;;
 
 (defn slot-users [me slot]
-  (set (map :slot
+  (set (map :slotq
             (map deref
                  (:callers @(slot @me) #{})))))
 

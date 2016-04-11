@@ -17,8 +17,11 @@
   (is (= 42 (unless (= 2 3) 42)))
   (is (nil? (unless (= 2 2) 42))))
 
-(deftest test-rmap-setf
-  (let [x (ref {:value 0})]
+(def-rmap-slots jj- boom)
+
+(deftest test-rmap
+  (let [x (ref {:value 0 :boom 42})]
+    (is (= 42 (jj-boom x)))
     (is (= 0 (:value @x)))
     (dosync (rmap-setf (:value x) 42))
     (println :xxx x @x (:value @x))
@@ -27,7 +30,8 @@
                                         ;(println :xxx x @x (:value @x))          
                                         ;(println :j j (type j))
           (= 43 j)))
-    (is (= 44 (dosync (rmap-setf (:value x) 44))))))
+    (is (= 44 (dosync (rmap-setf (:value x) 44))))
+    ))
 
 (deftest err-handling
   (is (thrown? Exception

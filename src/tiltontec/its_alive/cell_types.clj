@@ -28,50 +28,21 @@
     debug
     md-info))
 
-(derive ::cell ::object)
-(derive ::c-formula ::cell)
+(defonce ia-types (-> (make-hierarchy)
+                      (derive ::cell ::object)
+                      (derive ::c-formula ::cell)))
+
+
+
+(def-rmap-slots c-
+  slot state input? rule pulse pulse-last-changed pulse-observed
+  useds callers optimize value ephemeral? optimized-away?)
 
 (defn c-model [rc]
   (:me @rc))
 
-(defn c-slot [rc]
-  (:slot @rc))
-
 (defn c-slot-name [rc]
   (:slot @rc))
-
-(defn c-state [rc]
-  (:state @rc))
-
-(defn c-input? [rc]
-  (:input? @rc))
-
-(defn c-rule [rc]
-  (:rule @rc))
-
-(defn c-pulse-last-changed [rc]
-  (:pulse-last-changed @rc))
-
-(defn c-pulse-observed [rc]
-  (:pulse-observed @rc))
-
-(defn c-pulse [rc]
-  (:pulse @rc))
-
-(defn c-useds [rc]
-  (:useds @rc))
-
-(defn c-optimize [rc]
-  (:optimize @rc))
-
-(defn c-value [rc]
-  (:value @rc))
-
-(defn ephemeral? [c]
-  (:ephemeral @c))
-
-(defn c-optimized-away? [c]
-  (= :optimized-away (c-state c)))
 
 (defn c-value-state [rc]
   (case (c-value rc)
@@ -86,23 +57,11 @@
 (defn c-valid? [rc]
   (= :valid (c-value-state @rc)))
 
-(defn c-callers [rc]
-  (:callers @rc))
-
 (defn caller-ensure [used new-caller]
   (alter used assoc :callers (conj (c-callers used) new-caller)))
 
 (defn caller-drop [used caller]
   (alter used assoc :callers (disj (c-callers used) caller)))
-
-
-(defn cache-state-bound-p [value-state]
-  (or (= value-state :valid)
-    (= value-state :uncurrent)))
-
-(defn cache-bound-p [c]
-  (cache-state-bound-p (c-value-state c)))
-
 
 ; --- model awareness ---------------------------------
 
@@ -123,9 +82,6 @@
 
 (defmethod md-slot-value-assume :default [me])
 
-
-
-
 ; -----------------------------------------------------
 (comment
   (defstruct (c-ruled
@@ -133,24 +89,6 @@
               (:conc-name cr-))
     (code nil :type list) ;; /// feature this out on production build
     rule))
-
-
-;---------------------------
-
-(comment
-  (defstruct (c-dependent
-              (:include c-ruled)
-              (:conc-name cd-))
-    ;; chop (synapses nil :type list)
-    (useds nil :type list)
-    (usage (blank-usage-mask)))
-
-  (defstruct (c-drifter
-              (:include c-dependent)))
-
-  (defstruct (c-drifter-absolute
-              (:include c-drifter))))
-
 
 (comment
   (defmethod c-print-value ((c c-ruled) stream)
