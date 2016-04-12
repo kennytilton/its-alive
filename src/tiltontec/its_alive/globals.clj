@@ -50,36 +50,11 @@
    (reset! +client-q-handler+ (:client-queue-handler options))))
 
 (defmacro without-c-dependency [& body]
-  `(let [*depender* nil]
+  `(binding [*depender* nil]
       ~@body))
 
 (defn .cause []
     (first *causation*))
-
-;; --- types -------------------------
-
-;; (def cz-types (-> (make-hierarchy)
-;;                (derive :czi :cz)
-;;                (derive :czf :cz)
-;;                (derive :model :object)))
-
-(derive ::cell ::object)
-(derive ::c-ruled ::cell)
-(derive ::c-depedent ::c-ruled)
-(derive ::model ::object)
-
-(defn type? [it typ]
-  (isa? (type it) typ))
-
-(defn c-ref? [x]
-  (and (instance? clojure.lang.Ref x)
-       (type? @x ::cell)))
-
-;; --- defmodel rizing ---------------------
- 
-(defn md-ref? [x]
-  (and (instance? clojure.lang.Ref x)
-       (isa? (type @x) ::model)))
 
 ;; --- 19000 ----------------------------------
 
@@ -179,4 +154,4 @@ Kennet   (:report (fn (condition stream)
       (format stream " >: often you mis-edit (c? (c? ...)) nesting is error"))))
 
 
-:cells-ok
+:globals-ok

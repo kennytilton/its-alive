@@ -1,5 +1,6 @@
 (ns tiltontec.its-alive.utility-test
   (:require [clojure.test :refer :all]
+            [clojure.set :refer [difference]]
             [tiltontec.its-alive.utility :refer :all]))
 
 (deftest fake-cl
@@ -16,6 +17,17 @@
 
   (is (= 42 (unless (= 2 3) 42)))
   (is (nil? (unless (= 2 2) 42))))
+
+(deftest setify
+  (is (= #{1 2 3} (set-ify [1 1 2 2 3 3])))
+  (is (= #{1 2 3} (set-ify (list 1 1 2 2 3 3))))
+  (is (= #{} (set-ify nil)))
+  (is (= #{42} (set-ify 42)))
+  (is (= #{"bob"} (set-ify "bob")))
+  (is (= #{{:a 13}} (set-ify {:a 13})))
+  (is (= #{42}
+         (difference (set-ify [1 2 42])
+                     (set-ify (list 1 2))))))
 
 (def-rmap-slots jj- boom)
 

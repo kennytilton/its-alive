@@ -12,6 +12,8 @@
   `(when-let [~var ~form]
      ~@body))
 
+
+
 (defn cl-find [sought coll]
   (some #{sought} coll))
 
@@ -20,6 +22,12 @@
      ~@body))
 
 (defn type-of [x] (type x))
+
+(defn set-ify [x]
+  (cond
+   (nil? x) #{}
+   (sequential? x) (set x)
+   :else #{x}))
 
 ;; --- refs with maps conveniences -------------------
 
@@ -108,10 +116,6 @@
   (wtrx (0 10 "test" n)
         (when (> n 0)
           (wtrx-test (dec n)))))
-
-(println
- (with-out-str
-  (wtrx-test 2)))
 
 ;; --- deftest support ---------------------
 ;; These next two are lame because they just

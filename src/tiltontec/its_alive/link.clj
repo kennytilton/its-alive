@@ -95,7 +95,7 @@ Copyright (C) 1995, 2006 by Kenneth Tilton
 
 ; ---------------------------------------------
 
-(defn cd-usage-clear-all [c]
+(defn cd-usage-clearq-all [c]
   (setf (cd-usage c) (blank-usage-mask)))
 
 

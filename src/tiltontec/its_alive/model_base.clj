@@ -226,8 +226,8 @@
       (assoc slot-name (cells-flushed self))
     (get slot-name 'cell)))
 
-(defn flushed-cell-pulse+-observed [c]
-  (if (numberp (cdr c)) (cdr c) (c-pulse+-observed (cdr c))))
+(defn flushed-cell-pulse-observed [c]
+  (if (numberp (cdr c)) (cdr c) (c-pulse-observed (cdr c))))
 
 (defn (setf flushed-cell-pulse+-observed) (pulse c)
   (if (numberp (cdr c))

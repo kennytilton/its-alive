@@ -20,7 +20,7 @@
                                  :model (c-model *depender*)
                                  :slot-name ,syn-id
                                  :code #+live nil #-live ',body
-                                 :synaptic t
+                                 :synaptic? t
                                  :rule (c-fn ~@body)))))
                          (record-dependency new-syn)
                          new-syn))))

@@ -4,27 +4,11 @@
             [tiltontec.its-alive.cell-types :refer :all as cty]
             [tiltontec.its-alive.observer :refer :all]
             [tiltontec.its-alive.integrity :refer :all]))
-;; (ns-unmap *ns* 'c-model)
+
 (set! *print-level* 3)
 
-
-;; (defn make-c-input  
-;;   ([]
-;;    (make-c-input nil))
-
-;;   ([val]
-;;    (make-c-input {} val))
-
-;;   ([options val]
-;;    (ref (with-meta
-;;           (assoc options :value val
-;;                  :input? true
-;;                  :pulse 0 ;; hhack try init this and last-changed to current pulse
-;;                  :pulse-last-changed 0
-;;                  :pulse-observed 0
-;;                  :state :valid
-;;                  :callers {})
-;;           {:type ::cty/cell}))))
+;; (isa? ia-types ::tiltontec.its-alive.cell-types/c-formula
+;;       ::tiltontec.its-alive.cell-types/cell)
 
 (defn make-cell [& kvs]
   (let [options (apply hash-map kvs)]
@@ -41,7 +25,7 @@
                :input? true
               }
               options)
-       {:type :cell}))))
+       {:type ::tiltontec.its-alive.cell-types/cell}))))
 
 (defn make-c-formula [& kvs]
   (let [options (apply hash-map kvs)
@@ -63,7 +47,7 @@
                :input? false ;; not redundant: can start with rule, continue as input
               }
               options)
-       {:type :c-formula}))))
+       {:type ::tiltontec.its-alive.cell-types/c-formula}))))
 
 (set! *print-level* 2)
 
@@ -80,6 +64,13 @@
 
 (defmacro c? [& body]
   `(make-c-formula
+    :code '~body
+    :value unevaluated
+    :rule (c-fn ~@body)))
+
+(defmacro c?+ [[& options] & body]
+  `(make-c-formula
+    ~@options
     :code '~body
     :value unevaluated
     :rule (c-fn ~@body)))
@@ -181,10 +172,17 @@
     :rule (c-fn ~@body)
     ~@keys))
 
-(defn c-in [value]
-  (make-cell
-    :input? true
-    :value value))
+(defn c-in
+  ([value & option-kvs]
+   (apply make-cell
+          (list* :value value
+                 :input? true
+                 option-kvs)))
+  ([value]
+   (make-cell :value value
+              :input? true)))
+
+;; (c-in 42 :slot :cool)
 
 (comment ;; defstruct (c-envaluer (:conc-name nil))
   envalue-rule)

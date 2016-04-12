@@ -1,5 +1,6 @@
 (ns tiltontec.its-alive.observer
-  (:use [tiltontec.its-alive.globals :refer :all]))
+  (:use [tiltontec.its-alive.globals :refer :all]
+        [tiltontec.its-alive.cell-types :refer :all]))
 
 (ns-unmap *ns* '*observe-why*)
 (def ^:dynamic *observe-why* :unspecified)
@@ -57,6 +58,17 @@
 (defmethod observe :default [slot me new-val old-val]
   ;; (println :obs-fall-thru  slot (type @me) new-val old-val)
   )
+
+;; hhack not yet TDD'ed
+(defmacro defobserver [slot types params & body]
+  (assert (keyword? slot) "defobserver> slot should be a keyword.")
+  (let [ftypes (concat types (take-last (- 3 (count types))
+                                        '(::tiltontec.its-alive.cell-types/model Object Object)))
+        fparams (concat params
+                        (take-last (- 3 (count params))
+                                   '(me new-val old-val)))]
+    `(defmethod tiltontec.its-alive.observer/observe [~slot ~@ftypes][~'slot ~@fparams]
+       ~@body)))
 
 (defn enq-obs
   ([fn]

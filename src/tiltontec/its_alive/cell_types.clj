@@ -1,6 +1,6 @@
 (ns tiltontec.its-alive.cell-types
-  (:require [tiltontec.its-alive.utility :refer :all :as ut]
-            [tiltontec.its-alive.globals :refer :all :as ns]))
+  (:require [tiltontec.its-alive.utility :refer :all]
+            [tiltontec.its-alive.globals :refer :all]))
 
 (comment
   (defstruct (cell (:conc-name c-))
@@ -29,17 +29,33 @@
     md-info))
 
 (defonce ia-types (-> (make-hierarchy)
+                      (derive ::model ::object)
                       (derive ::cell ::object)
                       (derive ::c-formula ::cell)))
 
+(defn ia-type? [it typ]
+  (println :iaty-chk (type it) it typ)
+  (isa? ia-types (type it) typ))
 
 (isa? ia-types ::c-formula ::cell)
+(defn c-ref? [x]
+  (and (instance? clojure.lang.Ref x)
+       (ia-type? @x ::cell)))
 
-(descendants ia-types ::cell)
+;; --- defmodel rizing ---------------------
+ 
+(defn md-ref? [x]
+  (and (instance? clojure.lang.Ref x)
+       (ia-type? @x ::model)))
+
+;; (isa? ia-types ::c-formula ::cell)
+
+;; (descendants ia-types ::cell)
 
 (def-rmap-slots c-
   slot state input? rule pulse pulse-last-changed pulse-observed
-  useds callers optimize value ephemeral? optimized-away?)
+  useds callers optimize value ephemeral? optimized-away?
+  lazy synaptic?)
 
 (defn c-model [rc]
   (:me @rc))
@@ -48,7 +64,7 @@
   (:slot @rc))
 
 (defn c-value-state [rc]
-  (let [v (c-value rc)]
+  (when-let [v (c-value rc)]
     (cond
      (= v unbound) :unbound
      (= v unevaluated) :unevaluated
@@ -59,7 +75,7 @@
   (= :unbound (c-value-state rc)))
 
 (defn c-valid? [rc]
-  (= :valid (c-value-state @rc)))
+  (= :valid (c-value-state rc)))
 
 (defn caller-ensure [used new-caller]
   (alter used assoc :callers (conj (c-callers used) new-caller)))
@@ -77,14 +93,6 @@
 
 (defmethod mdead? :default [me]
   false)
-
-(defn md-slot-value-assume-dispatch [me]
-  (assert (md-ref? me))
-  [(type me)])
-
-(defmulti md-slot-value-assume md-slot-value-assume-dispatch)
-
-(defmethod md-slot-value-assume :default [me])
 
 ; -----------------------------------------------------
 (comment

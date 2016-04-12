@@ -58,7 +58,7 @@
 ;;            ; --- data flow propagation -----------
 ;;           ;
 ;;           (without-c-dependency
-;;               (c-propagate c prior-value t)))))))
+;;               (c-propagate c prior-value (c-callers c))))))))
 
 ;;; --- setf md.slot.value --------------------------------------------------------
 ;;;
@@ -71,82 +71,14 @@
           slot-name self new-value)
      ;; ---------------------------------------------------
      (cl-find (c-lazy c) [:once-asked :always true])
-     (md-slot-value-assume c new-value nil) ;; I can see :no-pragate here eventually
+     (c-slot-value-assume c new-value nil) ;; I can see :no-pragate here eventually
      ;; ------------------------------
      *defer-changes*
       (err format "SETF of ~a must be deferred by wrapping code in WITH-INTEGRITY ~a" c *within-integrity*)
    
      :else (with-integrity (:change slot-name)
-               (md-slot-value-assume c new-value nil)))))
+               (c-slot-value-assume c new-value nil)))))
 
-                    
-(defn md-slot-value-assume [c raw-value propagation-code]
-  (assert c)
-  (without-c-dependency
-   (let [prior-value (c-value c)
-         absorbed-value (c-absorb-value c raw-value)]
-
-        (c-pulse+-update c :slotv-assume)
-
-        (when-not
-            ;; -- bail if unchanged -----------------------
-            (and (not (eq propagation-code :propagate))
-                 (c-no-news c absorbed-value prior-value))
-          ;; 
-          ;; --- slot maintenance ---
-        
-          (unless (c-synaptic c) 
-                  (md-slot-value-store (c-model c) (c-slot-name c) absorbed-value))
-        
-          ;; --- cell maintenance ---
-          (ref-setf (:value c) absorbed-value)
-          (ref-setf (:state c) :awake)
-        
-          (let [callers (c-callers c)]
-            (when-let [optimize (and (typep c 'c-dependent)
-                                     (c-optimize c))]
-              (case optimize
-                :when-value-t (when (c-value c)
-                                (c-unlink-from-used c))
-                true (c-optimize-away?! c))) ;; so coming propagation has it visible
-        
-            ;; --- data flow propagation -----------
-            (unless (eq propagation-code :no-propagate)
-                    (c-propagate c prior-value callers))) 
-
-          absorbed-value))))
-
-;---------- optimizing away cells whose dependents all turn out to be constant ----------------
-;
-
-(defn c-optimize-away?! [c]
-  (when (and (typep c 'c-dependent)
-             (nil? (cd-useds c))
-             (cd-optimize c)
-             (not (c-optimized-away? c)) ;; c-streams (FNYI) may come this way repeatedly even if optimized away
-             (c-valid? c) ;; /// when would this not be the case? and who cares?
-             (not (c-synaptic c)) ;; no slot to cache invariant result, so they have to stay around)
-             (not (c-input? c)) ;; yes, dependent cells can be inputp
-             )
-    (ref-setf (:state c) :optimized-away)
-    (when-let [me (c-model c)]
-      (ref-set (:cells me) (dissoc (:cells @me) (c-slot c))))
-    (md-cell-flush c)
-    
-    ;; let callers know they need not check us for currency again
-    (doseq [caller (seq (c-callers c))]
-      ;
-      ; example: on window shutdown with a tool-tip displayed, the tool-tip generator got
-      ; kicked off and asked about the value of a dead instance. That returns nil, and
-      ; there was no other dependency, so the Cell then decided to optimize itself away.
-      ; of course, before that time it had a normal value on which other things depended,
-      ; so we ended up here. where there used to be a break.
-      ;
-      (alter caller assoc :useds (remove #{c} (cd-useds caller)))
-      (caller-drop c caller)
-      ;;; (trc "nested opti" c caller)
-      (c-optimize-away?! caller) ;; rare but it happens when rule says (or .cache ...)
-      )))
 
 (export! dump-call-stack)    
 (defn dump-call-stack [dbgid &optional dbgdata]

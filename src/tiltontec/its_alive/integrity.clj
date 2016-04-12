@@ -5,15 +5,21 @@
 
 ;; --- the pulse ------------------------------
 
-(def ^:dynamic *one-pulse?* nil)
+(def ^:dynamic *one-pulse?* false)
 
-(def ^:dynamic *dp-log* nil)
+(def ^:dynamic *dp-log* false)
 
-(defn data-pulse-next [pulse-info]
-  (unless *one-pulse?*
-      #_(when *dp-log*
-          (trx "dp-next> " (inc @+pulse+) pulse-info))
-      (alter +pulse+ inc)))
+
+(defn data-pulse-next
+  ([] (data-pulse-next []))
+  ([pulse-info]
+   (unless *one-pulse?*
+           #_(when *dp-log*
+               (trx "dp-next> " (inc @+pulse+) pulse-info))
+           (alter +pulse+ inc)))) ;; hhack try as commute
+
+#_
+(dosync (data-pulse-next))
 
 (defn c-current? [c]
   (= (c-pulse c) @+pulse+))
