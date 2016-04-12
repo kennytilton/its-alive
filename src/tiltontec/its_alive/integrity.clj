@@ -169,7 +169,7 @@
               (ufb-assert-q-empty :change)))))))
 
 (defn ephemeral-reset [rc]
-  (when (ephemeral? rc) ;; air bag
+  (when (c-ephemeral? rc) ;; air bag
     ;
     ; as of Cells3 we defer resetting ephemerals because everything
     ; else gets deferred and we cannot /really/ reset it until

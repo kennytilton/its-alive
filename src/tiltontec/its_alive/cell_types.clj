@@ -33,6 +33,9 @@
                       (derive ::c-formula ::cell)))
 
 
+(isa? ia-types ::c-formula ::cell)
+
+(descendants ia-types ::cell)
 
 (def-rmap-slots c-
   slot state input? rule pulse pulse-last-changed pulse-observed
@@ -45,11 +48,12 @@
   (:slot @rc))
 
 (defn c-value-state [rc]
-  (case (c-value rc)
-    unbound :unbound
-    unevaluated :unevaluated
-    uncurrent :uncurrent
-    :valid))
+  (let [v (c-value rc)]
+    (cond
+     (= v unbound) :unbound
+     (= v unevaluated) :unevaluated
+     (= v uncurrent) :uncurrent
+     :else :valid)))
 
 (defn c-unbound? [rc]
   (= :unbound (c-value-state rc)))
