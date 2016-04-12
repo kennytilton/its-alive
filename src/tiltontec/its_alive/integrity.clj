@@ -77,13 +77,13 @@
    (ufb-do (ufb-queue opcode) opcode))
 
   ([q opcode]
-   (println :ufb-do opcode)
+   ;; (println :ufb-do opcode)
    (when-let [[defer-info task] (fifo-pop q)]
      (task opcode defer-info)
      (recur q opcode))))
 
 (defn finish-business []
-  (println :fbiz!!!!!)
+  ;; (println :fbiz!!!!!)
   (un-stopped
    (loop [tag :tell-dependents]
      (case tag
@@ -140,7 +140,7 @@
     (assert (cl-find opcode +ufb-opcodes+)
             (format "Invalid opcode for with-integrity: %s. Allowed values: %s"
                     opcode +ufb-opcodes+)))
-  (println :cwi opcode *within-integrity*)
+  ;; (println :cwi opcode *within-integrity*)
   (un-stopped
    (dosync
     (cond
@@ -163,8 +163,7 @@
        (action opcode defer-info))
 
      :else (binding [*within-integrity* true
-                 *defer-changes* false]
-             (println :bam-cwi opcode)
+                     *defer-changes* false]
              (when (or (zero? @+pulse+)
                        (= opcode :change))
                (data-pulse-next))

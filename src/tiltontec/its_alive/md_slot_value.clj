@@ -58,7 +58,7 @@
 ;;            ; --- data flow propagation -----------
 ;;           ;
 ;;           (without-c-dependency
-;;               (c-propagate c prior-value (c-callers c))))))))
+;;               (propagate c prior-value (c-callers c))))))))
 
 ;;; --- setf md.slot.value --------------------------------------------------------
 ;;;

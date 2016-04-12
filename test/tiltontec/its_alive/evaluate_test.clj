@@ -18,7 +18,6 @@
     (is (= (cell-read c) 42))
     ))
 
-
 (deftest t-formula
   (let [c (c? (+ 40 2))]
     (is (isa? ia-types ::cty/c-formula ::cty/cell))
@@ -33,4 +32,16 @@
     (println :readddd (cell-read c))
     (is (= (cell-read c) 42))
     ))
+
+
+(deftest t-formula-2
+  (let [b (c-in 2)
+        c (c? (+ 40 (cell-read b)))
+        d (c? (/ (cell-read c)
+                 (cell-read b)))]
+    (is (= (cell-read d) 21))
+    (is (= (cell-read c) 42))
+    (is (= (cell-read b) 2))
+    ))
+
     

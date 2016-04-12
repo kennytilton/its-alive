@@ -40,33 +40,42 @@
        )
      r)))
 
-(defn obs-dispatch [slot-name me new-val old-val]
-  (assert (md-ref? me))
-  [slot-name (type @me)(type new-val)(type old-val)])
+(defn obs-dispatch [slot-name me new-val old-val c]
+  (println :obs-dispatch *observe-why* slot-name me new-val old-val c)
+  [slot-name
+   (type (when (md-ref? me) @me))
+   (type new-val)
+   (type old-val)])
 
-(defmulti observe obs-dispatch)
+(defmulti observe obs-dispatch #_(fn [slot-name me new-val old-val c]
+                    [slot-name
+                     (type (when (md-ref? me) @me))
+                     (type new-val)
+                     (type old-val)]))
 
 #_
 (obs-reset)
 
 (defn obs-reset []
   (remove-all-methods observe)
-  (defmethod observe :default [slot me new-val old-val]
-    (println :obs-fall-thru  slot (type @me) new-val old-val)
+  (defmethod observe :default [slot me new-val old-val c]
+    (println :obs-fall-thru  slot (type @me) new-val old-val c)
     ))
 
-(defmethod observe :default [slot me new-val old-val]
-  ;; (println :obs-fall-thru  slot (type @me) new-val old-val)
-  )
+(defmethod observe :default [slot me new-val old-val c]
+  (println :obs-fall-thru  slot
+           (cond
+            (md-ref? me)(type @me)
+            :else me)
+           new-val old-val c))
 
-;; hhack not yet TDD'ed
 (defmacro defobserver [slot types params & body]
   (assert (keyword? slot) "defobserver> slot should be a keyword.")
   (let [ftypes (concat types (take-last (- 3 (count types))
                                         '(::tiltontec.its-alive.cell-types/model Object Object)))
         fparams (concat params
-                        (take-last (- 3 (count params))
-                                   '(me new-val old-val)))]
+                        (take-last (- 4 (count params))
+                                   '(me new-value old-value c)))]
     `(defmethod tiltontec.its-alive.observer/observe [~slot ~@ftypes][~'slot ~@fparams]
        ~@body)))
 

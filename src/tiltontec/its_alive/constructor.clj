@@ -18,7 +18,7 @@
                :state :nascent
                :pulse 0
                :pulse-last-changed 0
-               :pulse-last-observed 0
+               :pulse-observed 0
                :callers #{}
                :lazy false ;; not a predicate (can hold, inter alia, :until-asked)
                :ephemeral? false
@@ -38,7 +38,7 @@
                :state :nascent
                :pulse 0
                :pulse-last-changed 0
-               :pulse-last-observed 0
+               :pulse-observed 0
                :callers #{}
                :useds #{}
                :lazy false
@@ -186,9 +186,5 @@
 
 (comment ;; defstruct (c-envaluer (:conc-name nil))
   envalue-rule)
-
-(defn awaken-cell-dispatch [c]
-  [(type @c)])
-
 
 :constructors-ok

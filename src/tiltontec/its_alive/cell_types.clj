@@ -34,16 +34,14 @@
                       (derive ::c-formula ::cell)))
 
 (defn ia-type? [it typ]
-  (println :iaty-chk (type it) it typ)
   (isa? ia-types (type it) typ))
 
-(isa? ia-types ::c-formula ::cell)
 (defn c-ref? [x]
   (and (instance? clojure.lang.Ref x)
        (ia-type? @x ::cell)))
 
 ;; --- defmodel rizing ---------------------
- 
+
 (defn md-ref? [x]
   (and (instance? clojure.lang.Ref x)
        (ia-type? @x ::model)))

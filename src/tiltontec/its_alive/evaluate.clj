@@ -76,8 +76,13 @@
 (defn cell-read [c]
   (prog1
    (with-integrity ()
-     (ensure-value-is-current c :c-read nil))
-
+     (let [prior-value (c-value c)]
+       (prog1
+        (ensure-value-is-current c :c-read nil)
+        (println :chking @+pulse+ :vs (c-pulse-observed c))
+        (when (> @+pulse+ (c-pulse-observed c))
+          (binding [*observe-why* :cell-read]
+            (observe (c-slot c) (c-model c) (c-value c) prior-value c))))))
    (when *depender*
      (record-dependency c))))
 
@@ -126,10 +131,10 @@
   ;
   ; nothing to calculate, but every cellular slot should be output
   ;
-  (when (> @+pulse+ (c-pulse-observed c)) ;; airbag
+  (when (> @+pulse+ (c-pulse-observed c))
     (rmap-setf (:pulse-observed c) @+pulse+)
     (binding [*observe-why* :awaken-cell]
-      (observe (c-slot-name c) (c-model c) (c-value c) unbound))
+      (observe (c-slot-name c) (c-model c) (c-value c) unbound c))
     (ephemeral-reset c)))
 
 (defmethod awaken-cell ::c-ruled [c]

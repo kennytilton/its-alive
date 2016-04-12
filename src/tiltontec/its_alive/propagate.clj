@@ -50,12 +50,15 @@
                (not-to-be l1))))
 
          (propagate-to-callers c callers)
-
+         (println :chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
          (when (or (> @+pulse+ (c-pulse-observed c))
                    (some #{(c-lazy c)}
                          '(:once-asked :always true))) ;; messy: these can get setfed/propagated twice in one pulse+
            (rmap-setf (:pulse-observed c) @+pulse+)
            (let [*observe-why* :propagate]
+             
+             (println :observe!!!!!! (c-slot-name c) (c-model c)
+                      (c-value c) prior-value c)
              (observe (c-slot-name c) (c-model c)
                       (c-value c) prior-value c)))
          
@@ -72,7 +75,7 @@
          ;;
          (ephemeral-reset c))))))
 
-(defn c-propagate-to-callers [c callers]
+(defn propagate-to-callers [c callers]
   ;;
   ;;  We must defer propagation to callers because of an edge case in which:
   ;;    - X tells A to recalculate
