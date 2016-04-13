@@ -1,10 +1,12 @@
+;;(ns-unmap *ns* 'propagate-and-set)
 (ns tiltontec.its-alive.evaluate
-  (:require [tiltontec.its-alive.utility :refer :all]
-            [tiltontec.its-alive.globals :refer :all]
-            [tiltontec.its-alive.cell-types :refer :all]
-            [tiltontec.its-alive.observer :refer :all]
-            [tiltontec.its-alive.propagate :refer :all]
-            [tiltontec.its-alive.integrity :refer :all]))
+  (:require
+      [clojure.set :refer [difference]]
+      [tiltontec.its-alive.utility :refer :all]
+      [tiltontec.its-alive.globals :refer :all]
+      [tiltontec.its-alive.cell-types :refer :all]
+      [tiltontec.its-alive.observer :refer :all]
+      [tiltontec.its-alive.integrity :refer :all]))
 
 (defn record-dependency [used]
   (when-not (c-optimized-away? used)
@@ -53,7 +55,7 @@
 
   ;; --- no more early exits  -------------------
   (or (not (c-valid? c))
-      (loop [[used & urest] (c-useds c)]
+      (loop [[used & urest] (seq (c-useds c))]
         (when used
           (ensure-value-is-current used :nested c)
           ;; now see if it actually changed
@@ -69,9 +71,10 @@
 
   ;; we were behind the pulse but not affected by the changes that moved the pulse
   ;; record that we are current to avoid future checking:
-  :else (do (println :just-pulse)
+  :else (do ;(println :just-pulse)
             (c-pulse-update c :valid-uninfluenced)
             (c-value c))))
+
 
 (defn cell-read [c]
   (prog1
@@ -79,7 +82,7 @@
      (let [prior-value (c-value c)]
        (prog1
         (ensure-value-is-current c :c-read nil)
-        (println :chking @+pulse+ :vs (c-pulse-observed c))
+        ;(println :chking @+pulse+ :vs (c-pulse-observed c))
         (when (> @+pulse+ (c-pulse-observed c))
           (binding [*observe-why* :cell-read]
             (observe (c-slot c) (c-model c) (c-value c) prior-value c))))))
@@ -104,9 +107,9 @@
 (declare unlink-from-used)
 
 (defn calculate-and-link [c]
-  (let [*call-stack* (cons c *call-stack*)
-        *depender* c
-        *defer-changes* true]
+  (binding [*call-stack* (cons c *call-stack*)
+            *depender* c
+            *defer-changes* true]
     ;; redecide dependencies each invocation based on actual use
     ;; unsubscribe from dependencies, then clear own record of them
     (unlink-from-used c)
@@ -146,8 +149,13 @@
 
 (declare c-absorb-value
          optimize-away?!
+         propagate
          c-no-news
          md-slot-value-store)
+
+(defn c-reset! [c new-value]
+  (dosync
+   (c-value-assume c new-value :propagate)))
 
 (defn c-value-assume [c new-value propagation-code]
 
@@ -172,7 +180,7 @@
           ;; --- cell maintenance ---
           (rmap-setf (:value c) new-value)
           (rmap-setf (:state c) :awake)
-        
+
           (let [callers (c-callers c)] ;; get a copy before we might optimize away
             (when-let [optimize (and (ia-type? c 'c-formula)
                                      (c-optimize c))]
@@ -188,10 +196,13 @@
           new-value))))
 
 ;; --- unlinking ----------------------------------------------
-
 (defn unlink-from-used [c]
-  (doseq [used (c-useds c)]
-    (alter used disj c))
+  (println :hun  (set? (c-useds c)))
+  
+  (for [used (c-useds c)]
+    (do (println :hunh (set? (c-callers c)))
+        (rmap-setf (:callers used) (disj (c-callers used) c))))
+
   (rmap-setf (:useds c) #{}))
 
 
@@ -263,5 +274,147 @@
 ;;     (+ base delta)
 ;;     base))
 
+
+;--------------- propagate  ----------------------------
+; n.b. the cell argument may have been optimized away,
+; though it is still receiving final processing here.
+
+(def ^:dynamic *per-cell-handler* nil)
+
+(declare propagate-to-callers
+         md-slot-owning?
+         md-slot-cell-flushed
+         not-to-be)
+
+(defn propagate [c prior-value callers]
+  (println :prop-entry
+           (map c-slot (list* c callers)))
+  (cond
+   *one-pulse?* (when *per-cell-handler*
+                  (*per-cell-handler* c prior-value))
+   ;; ----------------------------------
+   :else
+   (do
+     (rmap-setf (:pulse-last-changed c) @+pulse+)
+     
+     (binding [*depender* nil
+               *call-stack* nil
+               *c-prop-depth*  (inc *c-prop-depth*)
+               *defer-changes* true]
+       ;; --- manifest new value as needed ---
+       ;;
+       ;; 20061030 Trying not.to.be first because doomed instances may be interested in callers
+       ;; who will decide to propagate. If a family instance kids slot is changing, a doomed kid
+       ;; will be out of the kids but not yet quiesced. If the propagation to this rule asks the kid
+       ;; to look at its siblings (say a view instance being deleted from a stack who looks to the psib
+       ;; pb to decide its own pt), the doomed kid will still have a parent but not be in its kids slot
+       ;; when it goes looking for a sibling relative to its position.
+       (when (and prior-value
+                  (c-model c)
+                  (md-slot-owning? (type (c-model c)) (c-slot-name c)))
+         (when-let [ownees (difference (set-ify prior-value) (set-ify (c-value c)))]
+           (doseq [ownee ownees]
+             (not-to-be ownee))))
+
+       (propagate-to-callers c callers)
+       (println :chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
+       (when (or (> @+pulse+ (c-pulse-observed c))
+                 (some #{(c-lazy c)}
+                       '(:once-asked :always true))) ;; messy: these can get setfed/propagated twice in one pulse+
+         (rmap-setf (:pulse-observed c) @+pulse+)
+         (let [*observe-why* :propagate]
+           
+           #_(println :observe!!!!!! (c-slot-name c) (c-model c)
+                      (c-value c) prior-value c)
+           (observe (c-slot-name c) (c-model c)
+                    (c-value c) prior-value c)))
+       
+       ;;
+       ;; with propagation done, ephemerals can be reset. we also do this in c-awaken, so
+       ;; let the fn decide if C really is ephemeral. Note that it might be possible to leave
+       ;; this out and use the pulse to identify obsolete ephemerals and clear them
+       ;; when read. That would avoid ever making again bug I had in which I had the reset 
+       ;; inside slot-value-observe,
+       ;; thinking that that always followed propagation to callers. It would also make
+       ;; debugging easier in that I could find the last ephemeral value in the inspector.
+       ;; would this be bad for persistent CLOS, in which a DB would think there was still a link
+       ;; between two records until the value actually got cleared?
+       ;;
+       (ephemeral-reset c)))))
+
+(defn propagate-to-callers [c callers]
+  ;;
+  ;;  We must defer propagation to callers because of an edge case in which:
+  ;;    - X tells A to recalculate
+  ;;    - A asks B for its current value
+  ;;    - B must recalculate because it too uses X
+  ;;    - if B propagates to its callers after recalculating instead of deferring it
+  ;;       - B might tell H to reclaculate, where H decides this time to use A
+  ;;       - but A is in the midst of recalculating, and cannot complete until B returns.
+  ;;         but B is busy eagerly propagating. "This time" is important because it means
+  ;;         there is no way one can reliably be sure H will not ask for A
+  ;;
+  ;; not needed until we are doing dataflow
+  (when-not (empty? callers)
+    (let [causation (cons c *causation*)] ;; closed over below
+      (with-integrity (:tell-dependents c)
+        (if (mdead? (c-model c))
+          (do (trx "WHOAA!!!! dead by time :tell-deps dispatched; bailing" c))
+          (binding [*causation* causation]
+            (doseq [caller (seq callers)]
+              (cond ;; lotsa reasons not to proceed
+               (or (= (c-state caller) :quiesced)
+                   (some #{(c-lazy caller)} [true :always :once-asked])
+                   (and (not (some #{c} (c-useds caller)))
+                        (not (c-optimized-away? c)))
+                   ;; above: c would have been removed from any c-useds if optimized
+                   ;; so caller does not look like a user but it needs one more notification
+                   (c-current? caller)) ;; happens if I changed when caller used me in current pulse+
+               (trx not-notifying (c-slot caller)
+                    (c-current? caller) @+pulse+ (c-pulse caller)
+                    )
+               :else
+               (binding [*trc-ensure* false]
+                 ;;
+                 ;; we just calculate-and-set at the first level of dependency because
+                 ;; we do not need to check the next level (as ensure-value-is-current does)
+                 ;; because we already know /this/ notifying dependency has changed, so yeah,
+                 ;; any first-level cell /has to/ recalculate. (As for ensuring other dependents
+                 ;; of the first level guy are current, that happens automatically anyway JIT on
+                 ;; any read.) This is a minor efficiency enhancement since ensure-value-is-current would
+                 ;; very quickly decide it has to re-run, but maybe it makes the logic clearer.
+                 ;;
+                 ;;(ensure-value-is-current caller :prop-from c) <- next was this, but see above change reason
+                 ;;
+                 (calculate-and-set caller :propagate c))))))))))
+
+(def ^:dynamic *the-unpropagated* nil)
+
+;; (defmacro with-one-datapulse+ ((&key (per-cell nil per-cell?) (finally nil finally?)) & body)
+;;   `(call-with-one-datapulse+ (fn () ~@body)
+;;      ~@(when per-cell? `(:per-cell (fn (c prior-value prior-value-boundp)
+;;                                      (declare (ignorable c prior-value prior-value-boundp))
+;;                                      ,per-cell)))
+;;      ~@(when finally? `(:finally (fn (cs) (declare (ignorable cs)) ,finally)))))
+
+;; (defn call-with-one-datapulse+
+;;     (f &key
+;;       (per-cell (fn (c prior-value prior-value?)
+;;                   (unless (cl-find c *the-unpropagated* :key 'car)
+;;                     (pushnew (list c prior-value prior-value?) *the-unpropagated*))))
+;;       (finally (fn (cs)
+;;                  (print `(finally sees ~@+pulse+ ,cs))
+;;                  (loop for (c prior-value prior-value?) in (nreverse cs) do
+;;                        (propagate c prior-value)))))
+;;   (assert (not *one-pulse+?*))
+;;   (data-pulse+-next :client-prop)
+;;   (trx "call-with-one-datapulse+ bumps pulse" @+pulse+)
+;;   (finally
+;;     (let ((*one-pulse+?* t)
+;;           (*per-cell-handler* per-cell)
+;;           (*the-unpropagated* nil))
+;;       (f)
+;;       *the-unpropagated*)))
+  
 :evaluate-ok
 

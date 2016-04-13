@@ -52,7 +52,7 @@
 
 (def-rmap-slots c-
   slot state input? rule pulse pulse-last-changed pulse-observed
-  useds callers optimize value ephemeral? optimized-away?
+  useds users callers optimize value ephemeral? optimized-away?
   lazy synaptic?)
 
 (defn c-model [rc]
@@ -83,11 +83,10 @@
 
 ; --- model awareness ---------------------------------
 
-(defn mdead?-dispatch [me]
-  (assert (md-ref? me))
-  [(type me)])
-
-(defmulti mdead? mdead?-dispatch)
+(defmulti mdead? (fn [me]
+                   (assert (or (nil? me)
+                               (md-ref? me)))
+                   [(type (when me @me))]))
 
 (defmethod mdead? :default [me]
   false)

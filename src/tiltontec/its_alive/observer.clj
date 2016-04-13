@@ -63,7 +63,7 @@
     ))
 
 (defmethod observe :default [slot me new-val old-val c]
-  (println :obs-fall-thru  slot
+  #_(println :obs-fall-thru  slot
            (cond
             (md-ref? me)(type @me)
             :else me)
@@ -78,6 +78,7 @@
                                    '(me new-value old-value c)))]
     `(defmethod tiltontec.its-alive.observer/observe [~slot ~@ftypes][~'slot ~@fparams]
        ~@body)))
+
 
 (defn enq-obs
   ([fn]

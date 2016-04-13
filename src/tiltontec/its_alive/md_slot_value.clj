@@ -18,9 +18,6 @@
       (cell-read c)
       (slot-value self slot-name))))
 
-  
-(def ^:dynamic *trc-ensure* nil)
-
 (defn qci [c]
   (when c
     (cons (md-name (c-model c)) (c-slot-name c))))
@@ -70,18 +67,13 @@
      (err format "Non-c-in slot ~a of ~a cannot be reset! to ~s"
           slot-name self new-value)
      ;; ---------------------------------------------------
-     (cl-find (c-lazy c) [:once-asked :always true])
-     (c-slot-value-assume c new-value nil) ;; I can see :no-pragate here eventually
+     (some #{(c-lazy c)} [:once-asked :always true])
+     (slot-value-assume c new-value nil) ;; I can see :no-pragate here eventually
      ;; ------------------------------
      *defer-changes*
       (err format "SETF of ~a must be deferred by wrapping code in WITH-INTEGRITY ~a" c *within-integrity*)
    
      :else (with-integrity (:change slot-name)
-               (c-slot-value-assume c new-value nil)))))
+               (slot-value-assume c new-value nil)))))
 
 
-(export! dump-call-stack)    
-(defn dump-call-stack [dbgid &optional dbgdata]
-  (trx dump-call-stack-newest-first (length *call-stack*) dbgid dbgdata)
-  (doseq [caller *call-stack*]
-    (trx "caller> " caller #+shhh (cr-code caller))))

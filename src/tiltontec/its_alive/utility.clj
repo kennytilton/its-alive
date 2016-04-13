@@ -72,6 +72,7 @@
 #_
 (alter-var-root #'*trx?* not)
 
+(def ^:dynamic *trc-ensure* nil)
 (def ^:dynamic *trx-path-id* nil)
 (def ^:dynamic *trxdepth* 0)
 (def last-trc (atom 0)) ;; s/b universal time
