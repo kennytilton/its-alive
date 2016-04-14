@@ -109,4 +109,8 @@
   (defmethod c-print-value (c stream)
     (declare (ignore c stream))))
 
+;; debug aids --------------
+(defn c-slots [c k]
+  (assert (c-ref? c))
+  (set (map c-slot (k @c))))
 :cell-types-ok

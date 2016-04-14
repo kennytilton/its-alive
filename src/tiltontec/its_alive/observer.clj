@@ -1,23 +1,8 @@
 (ns tiltontec.its-alive.observer
-  (:use [tiltontec.its-alive.globals :refer :all]
+  (:use [tiltontec.its-alive.utility :refer :all]
+        [tiltontec.its-alive.globals :refer :all]
         [tiltontec.its-alive.cell-types :refer :all]))
 
-(ns-unmap *ns* '*observe-why*)
-(def ^:dynamic *observe-why* :unspecified)
-
-;; (defparameter *observe-why* nil) ;; debug aid
-
-;; (defgeneric observe (slotname self new old old-boundp cell)
-;;   #-(or cormanlisp)
-;;   (:method-combination progn))
-
-;; #-cells-testing
-;; (defmethod observe #-(or cormanlisp) progn
-;;   (slot-name self new old old-boundp cell)
-;;   (declare (ignorable slot-name self new old old-boundp cell)))
-
-
-;;; --- observing --------------------------
 
 (def ^:dynamic *unobserved* [])
 
@@ -41,7 +26,6 @@
      r)))
 
 (defn obs-dispatch [slot-name me new-val old-val c]
-  (println :obs-dispatch *observe-why* slot-name me new-val old-val c)
   [slot-name
    (type (when (md-ref? me) @me))
    (type new-val)
@@ -59,7 +43,7 @@
 (defn obs-reset []
   (remove-all-methods observe)
   (defmethod observe :default [slot me new-val old-val c]
-    (println :obs-fall-thru  slot (type @me) new-val old-val c)
+    ;; (println :obs-fall-thru  slot (type @me) new-val old-val c)
     ))
 
 (defmethod observe :default [slot me new-val old-val c]
@@ -79,29 +63,13 @@
     `(defmethod tiltontec.its-alive.observer/observe [~slot ~@ftypes][~'slot ~@fparams]
        ~@body)))
 
-
-(defn enq-obs
-  ([fn]
-   ;;(trx enq-obs-entry fn (map #((:slot @%))) *unobserved*)
-   (assert fn)
-   (assert (fn? fn))
-   (swap! *unobserved* conj fn)
-   nil)
-
-  ([rjz old-val]
-   (assert (c-ref? rjz))
-   (let [jz @(ensure rjz)]
-     ;; (trx enq-obs2> (:slot jz)(:value jz) old-val)
-     (enq-obs (:slot jz) (:me jz) (:value jz) old-val)))
-
-  ([slot me new old]
-   (assert (md-ref? me) (str "enq-obs4 me " me " is not an md-ref"))
-
-   ;; (trx enq-obs4> slot new old me)
-   (enq-obs (fn []
-              ;; (trx act-calling-obs! slot me new old)
-              (observe slot me new old)
-              ;; (trx obs-fini!!! slot new me)
-              nil))))
+(defn c-observe
+  ([c why]
+   (c-observe c unbound why))
+  ([c prior-value why]
+   (assert (c-ref? c))
+   (rmap-setf (:pulse-observed c) @+pulse+)
+   ((or (:obs @c) observe)
+    (c-slot c)(c-model c)(c-value c) prior-value c)))
 
 :observer-ok

@@ -61,7 +61,6 @@
 (defn ufb-assert-q-empty [opcode]
   (if-let [uqp (fifo-peek (ufb-queue-ensure opcode))]
     (do
-      (println :uqp!!!!!!!!!!!!! uqp)
       (err format "ufb queue %s not empty, viz %s"
            opcode uqp))
     true))

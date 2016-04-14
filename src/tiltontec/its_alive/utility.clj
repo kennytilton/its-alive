@@ -12,8 +12,6 @@
   `(when-let [~var ~form]
      ~@body))
 
-
-
 (defn cl-find [sought coll]
   (some #{sought} coll))
 

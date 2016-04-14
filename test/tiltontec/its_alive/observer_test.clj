@@ -2,10 +2,12 @@
   (:require [clojure.test :refer :all]
             [tiltontec.its-alive.cell-types :refer :all :as cty]
             [tiltontec.its-alive.constructor :refer :all]
-            [tiltontec.its-alive.evaluate :refer [cell-read]]
+            [tiltontec.its-alive.integrity :refer [with-integrity]]
+            [tiltontec.its-alive.evaluate :refer [cell-read c-reset!]]
             [tiltontec.its-alive.observer :refer [defobserver]]
             ))
 
+(set! *print-level* 3)
 
 ;; (isa? (type nil)(type nil))
 
@@ -48,4 +50,27 @@
     (is (= (cell-read c) 42))
     (is @bingo2)
     ))
+
+
+(deftest t-custom-obs
+  (let [bobs (atom nil)
+        b (c-in 2 :slot :bb
+                :obs (fn [slot me new old c]
+                       (println slot me new old)
+                       (reset! bobs new)))
+        cobs (atom nil)
+        c (c?+ [:obs (fn [slot me new old c]
+                       (println slot me new old)
+                       (reset! cobs new))]
+               (* 10 (cell-read b)))]
+    (dosync
+     (is (= (cell-read b) 2))
+     (is (= @bobs 2))
+     (is (= (cell-read c) 20))
+     (is (= @cobs 20))
+     (c-reset! b 3)
+     (is (= 3 @bobs))
+     (is (= 30 (cell-read c)))
+     (is (= 30 @cobs))
+     )))
 

@@ -4,9 +4,9 @@
             [tiltontec.its-alive.globals :refer :all]
             [tiltontec.its-alive.constructor :refer :all]
             ))
-(isa? ia-types ::cty/cell ::cty/cell)
-(type @(make-cell :slot :mol :value 42))
-(isa? ia-types (type @(make-cell :slot :mol :value 42)) ::cty/cell)
+
+(set! *print-level* 3)
+
 (deftest test-input
   (let [c (make-cell 
              :slot :mol

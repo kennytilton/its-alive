@@ -1,4 +1,3 @@
-;;(ns-unmap *ns* 'propagate-and-set)
 (ns tiltontec.its-alive.evaluate
   (:require
       [clojure.set :refer [difference]]
@@ -7,6 +6,7 @@
       [tiltontec.its-alive.cell-types :refer :all]
       [tiltontec.its-alive.observer :refer :all]
       [tiltontec.its-alive.integrity :refer :all]))
+
 
 (defn record-dependency [used]
   (when-not (c-optimized-away? used)
@@ -62,9 +62,9 @@
           (or (> (c-pulse-last-changed used)(c-pulse c))
               (recur urest)))))
   (do ;; we seem to need update, but...
-    (println :seem-to-need)
+    ;; (println :seem-to-need)
     (unless (c-current? c)
-            (println :not-current)
+            ;; (println :not-current)
             ;; happens if dependent changed and its observer read/updated me
             (calculate-and-set c :evic ensurer))
     (c-value c))
@@ -84,8 +84,7 @@
         (ensure-value-is-current c :c-read nil)
         ;(println :chking @+pulse+ :vs (c-pulse-observed c))
         (when (> @+pulse+ (c-pulse-observed c))
-          (binding [*observe-why* :cell-read]
-            (observe (c-slot c) (c-model c) (c-value c) prior-value c))))))
+          (c-observe c prior-value :cell-read)))))
    (when *depender*
      (record-dependency c))))
 
@@ -98,7 +97,7 @@
      ;; Lisp Cells allowed rules to return a second value indicating whether or not to propagate
      ;; Let's see if we need that and then work around missing multiple value return
      (unless (c-optimized-away? c)
-             (println :cn-set-assuming)
+             ;; (println :cn-set-assuming)
              ;; this check for optimized-away? arose because a rule using without-c-dependency
              ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
              ;; re-exit will be of an optimized away cell, which we need not sv-assume on...
@@ -124,10 +123,10 @@
 (defn awaken-cell-reset []
   (remove-all-methods awaken-cell)
   (defmethod awaken-cell :default [c]
-    (println :awaken-cell-fall-thru  (type @c))))
+    #_ (println :awaken-cell-fall-thru  (type @c))))
 
 (defmethod awaken-cell :default [slot me new-val old-val]
-  (println :obs-fall-thru  slot (type @me) new-val old-val))
+  #_ (println :obs-fall-thru  slot (type @me) new-val old-val))
 
 (defmethod awaken-cell ::cell [c]
   (assert (c-input? c))
@@ -135,9 +134,7 @@
   ; nothing to calculate, but every cellular slot should be output
   ;
   (when (> @+pulse+ (c-pulse-observed c))
-    (rmap-setf (:pulse-observed c) @+pulse+)
-    (binding [*observe-why* :awaken-cell]
-      (observe (c-slot-name c) (c-model c) (c-value c) unbound c))
+    (c-observe c :awaken-cell)
     (ephemeral-reset c)))
 
 (defmethod awaken-cell ::c-ruled [c]
@@ -155,7 +152,8 @@
 
 (defn c-reset! [c new-value]
   (dosync
-   (c-value-assume c new-value :propagate)))
+   (with-integrity (:change :c-reset!)
+     (c-value-assume c new-value :propagate))))
 
 (defn c-value-assume [c new-value propagation-code]
 
@@ -197,10 +195,8 @@
 
 ;; --- unlinking ----------------------------------------------
 (defn unlink-from-used [c]
-  (println :hun  (set? (c-useds c)))
-  
   (for [used (c-useds c)]
-    (do (println :hunh (set? (c-callers c)))
+    (do
         (rmap-setf (:callers used) (disj (c-callers used) c))))
 
   (rmap-setf (:useds c) #{}))
@@ -287,7 +283,7 @@
          not-to-be)
 
 (defn propagate [c prior-value callers]
-  (println :prop-entry
+  #_(println :prop-entry
            (map c-slot (list* c callers)))
   (cond
    *one-pulse?* (when *per-cell-handler*
@@ -317,17 +313,11 @@
              (not-to-be ownee))))
 
        (propagate-to-callers c callers)
-       (println :chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
+       ;(println :chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
        (when (or (> @+pulse+ (c-pulse-observed c))
                  (some #{(c-lazy c)}
                        '(:once-asked :always true))) ;; messy: these can get setfed/propagated twice in one pulse+
-         (rmap-setf (:pulse-observed c) @+pulse+)
-         (let [*observe-why* :propagate]
-           
-           #_(println :observe!!!!!! (c-slot-name c) (c-model c)
-                      (c-value c) prior-value c)
-           (observe (c-slot-name c) (c-model c)
-                    (c-value c) prior-value c)))
+         (c-observe c prior-value :propagate))
        
        ;;
        ;; with propagation done, ephemerals can be reset. we also do this in c-awaken, so

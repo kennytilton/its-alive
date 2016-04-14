@@ -10,6 +10,9 @@
 
 ;; --- the Cells beef -----------------------
 (def +pulse+ (ref 0))
+(defn cells-init []
+  (dosync
+   (ref-set +pulse+ 1)))
 (def ^:dynamic *causation* '())
 (def ^:dynamic *call-stack* nil)
 (def ^:dynamic *depender* nil) 
@@ -33,7 +36,6 @@
 
 
 ;; --- debug stuff -----------------------------
-(ns-unmap *ns* '*observe-why*)
 (def ^:dynamic *finbiz-id* 0)
 (def ^:dynamic *c-prop-depth* 0)
 

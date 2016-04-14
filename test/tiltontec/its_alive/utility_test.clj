@@ -3,6 +3,8 @@
             [clojure.set :refer [difference]]
             [tiltontec.its-alive.utility :refer :all]))
 
+(set! *print-level* 3)
+
 (deftest fake-cl
   (is (= 42 (prog1 42 43 44)))
   (is (= 42 (b-when x (+ 21 21)
