@@ -4,7 +4,7 @@
             [tiltontec.its-alive.constructor :refer :all]
             [tiltontec.its-alive.integrity :refer [with-integrity]]
             [tiltontec.its-alive.evaluate :refer [cell-read c-reset!]]
-            [tiltontec.its-alive.observer :refer [defobserver]]
+            [tiltontec.its-alive.observer :refer [defobserver fn-obs]]
             ))
 
 (set! *print-level* 3)
@@ -51,15 +51,14 @@
     (is @bingo2)
     ))
 
-
 (deftest t-custom-obs
   (let [bobs (atom nil)
         b (c-in 2 :slot :bb
-                :obs (fn [slot me new old c]
+                :obs (fn-obs
                        (println slot me new old)
                        (reset! bobs new)))
         cobs (atom nil)
-        c (c?+ [:obs (fn [slot me new old c]
+        c (c?+ [:obs (fn-obs [slot me new old c]
                        (println slot me new old)
                        (reset! cobs new))]
                (* 10 (cell-read b)))]
