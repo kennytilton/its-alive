@@ -1,5 +1,5 @@
 # its-alive
-A Clojure dataflow library for building application models that run by themselves. It's alive!(tm) is starting out as a literal translation of my Common Lisp Cells library, where you will find the closest thing I have done to documentation: https://github.com/kennytilton/cells
+A Clojure dataflow library for building application models that run by themselves. It's alive!(tm) is starting out as a literal translation of my Common Lisp Cells library, where you will find the closest thing I have done to documentation: https://github.com/kennytilton/cells/wiki
 
 Once I have this Clojure version working I will do a proper tutorial demonstrating all the many features.
 
