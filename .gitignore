@@ -4,6 +4,10 @@ pom.xml.asc
 /lib/
 /classes/
 /target/
+/otest/
+/absorbed/
+/archive/
+/notyet/
 /checkouts/
 .lein-deps-sum
 .lein-repl-history
