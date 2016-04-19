@@ -76,7 +76,7 @@
    (ufb-do (ufb-queue opcode) opcode))
 
   ([q opcode]
-   (println :ufb-do opcode)
+   ;;(println :ufb-do opcode)
    (when-let [[defer-info task] (fifo-pop q)]
      (trx :ufb-do-yep defer-info task)
      (task opcode defer-info)

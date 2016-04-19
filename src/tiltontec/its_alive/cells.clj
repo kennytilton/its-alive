@@ -49,7 +49,7 @@
               options)
        {:type ::tiltontec.its-alive.cell-types/c-formula}))))
 
-(set! *print-level* 2)
+
 
 ;___________________ constructors _______________________________
 

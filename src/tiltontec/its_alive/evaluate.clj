@@ -84,8 +84,10 @@
      (let [prior-value (c-value c)]
        (prog1
         (ensure-value-is-current c :c-read nil)
-        ;(println :chking @+pulse+ :vs (c-pulse-observed c))
-        (when (> @+pulse+ (c-pulse-observed c))
+        ;; this is new here, intended to awaken standalone cells JIT
+        (when (and (= (c-state c) :nascent)
+                   (> @+pulse+ (c-pulse-observed c)))
+          (rmap-setf (:state c) :awake)
           (c-observe c prior-value :cell-read)))))
    (when *depender*
      (record-dependency c))))
@@ -103,7 +105,7 @@
              ;; this check for optimized-away? arose because a rule using without-c-dependency
              ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
              ;; re-exit will be of an optimized away cell, which we need not sv-assume on...
-             (c-value-assume c raw-value nil)))))
+             (c-value-assume c raw-value nil false)))))
 
 (declare unlink-from-used)
 
@@ -150,51 +152,57 @@
 (declare c-absorb-value
          optimize-away?!
          propagate
-         c-no-news
+         c-value-changed?
          md-slot-value-store)
 
 (defn c-reset! [c new-value]
   (dosync
-   (with-integrity (:change :c-reset!)
-     (c-value-assume c new-value :propagate))))
+   (c-value-assume c new-value nil true)))
 
-(defn c-value-assume [c new-value propagation-code]
+(defn c-value-assume [c new-value propagation-code initiate-integrity?]
 
   (assert (c-ref? c))
+  (trx :cv-ass (:slot @c) new-value)
+  (prog1 new-value ;; sans doubt
+         (without-c-dependency
+          (let [prior-value (c-value c)
+                prior-state (c-value-state c)]
 
-  (without-c-dependency
-   (let [prior-value (c-value c)]
-
-        (c-pulse-update c :slotv-assume)
-
-        (when-not
-            ;; -- bail if unchanged -----------------------
-            (and (not (= propagation-code :propagate))
-                 (c-no-news c new-value prior-value))
-          ;; 
-          ;; --- model maintenance ---
+            ;; --- cell maintenance ---
+            ;; hhhack: new for 4/19/2016: even if no news at
+            ;; least honor the reset!
+            ;;
+            (rmap-setf (:value c) new-value)
+            (rmap-setf (:state c) :awake)
+            ;; 
+            ;; --- model maintenance ---
+            (when (and (c-model c)
+                       (c-synaptic? c) )
+              (md-slot-value-store (c-model c) (c-slot-name c) new-value))
         
-          (when (and (c-model c)
-                     (c-synaptic? c) )
-            (md-slot-value-store (c-model c) (c-slot-name c) new-value))
-        
-          ;; --- cell maintenance ---
-          (rmap-setf (:value c) new-value)
-          (rmap-setf (:state c) :awake)
+            (c-pulse-update c :slotv-assume)
+            
+            (when (or (= propagation-code :propagate) ;; forcing
+                      (not (some #{prior-state} [:valid :uncurrent]))
+                      (c-value-changed? c new-value prior-value))
+              ;; --- something happened ---
+              ;; we may be overridden by a :no-propagate below, but anyway
+              ;; we now can look to see if we can be optimized away
 
-          (let [callers (c-callers c)] ;; get a copy before we might optimize away
-            (when-let [optimize (and (ia-type? c 'c-formula)
-                                     (c-optimize c))]
-              (case optimize
-                :when-value-t (when (c-value c)
-                                (unlink-from-used c))
-                true (optimize-away?! c))) ;; so coming propagation has it visible
+              (let [callers (c-callers c)] ;; get a copy before we might optimize away
+                (when-let [optimize (and (ia-type? c 'c-formula)
+                                         (c-optimize c))]
+                  (case optimize
+                    :when-value-t (when (c-value c)
+                                    (unlink-from-used c))
+                    true (optimize-away?! c))) ;; so coming propagation has it visible
         
-            ;; --- data flow propagation -----------
-            (unless (= propagation-code :no-propagate)
-                    (propagate c prior-value callers))) 
-
-          new-value))))
+                ;; --- data flow propagation -----------
+                (unless (= propagation-code :no-propagate)
+                        (let [pfn #(propagate c prior-value callers)]
+                          (if initiate-integrity?
+                            (with-integrity (:change :c-reset!) (pfn))
+                            (pfn))))))))))
 
 ;; --- unlinking ----------------------------------------------
 (defn unlink-from-used [c]
@@ -237,30 +245,19 @@
       (c-optimize-away?! caller) ;; rare but it happens when rule says (or .cache ...)
       )))
 
+
 ;----------------- change detection ---------------------------------
 
 (defmulti unchanged-test (fn [me slot]
                            [(when me (type @me)) slot]))
      
-(defmethod unchanged-test :default [self slotname]
-  (fn [new old]
-    (= new old)))
+(defmethod unchanged-test :default [self slotname] =)
 
-;; (defmacro def-c-unchanged-test ((class slotname) & test)
-;;   `(defmethod c-unchanged-test ((self ,class) (slotname (eql ',slotname)))
-;;      ~@test))
-
-
-(defn c-no-news [c new-value old-value]
-  ((unchanged-test (c-model c) (c-slot c))
-   new-value old-value))
-
-;;; ---  vestigial -----------------------------
-;; (defn c-absorb-value [c value]
-;;   (typecase c
-;;     (c-drifter-absolute (c-value-incf c value 0)) ;; strange but true
-;;     (c-drifter (c-value-incf c (c-value c) value))
-;;     (t value)))
+(defn c-value-changed? [c new-value old-value]
+  (trx :unchanged? (:slot @c) new-value old-value)
+  (not ((or (:unchanged-if @c)
+            (unchanged-test (c-model c) (c-slot c)))
+        new-value old-value)))
 
 ;; (defmethod c-value-incf (c (envaluer c-envaluer) delta)
 ;;   (c-assert (c-model c))
@@ -273,12 +270,11 @@
 ;;     (+ base delta)
 ;;     base))
 
-
 ;--------------- propagate  ----------------------------
 ; n.b. the cell argument may have been optimized away,
 ; though it is still receiving final processing here.
 
-(def ^:dynamic *per-cell-handler* nil)
+(def ^:dynamic *custom-propagater* nil)
 
 (declare propagate-to-callers
          md-slot-owning?
@@ -287,11 +283,10 @@
 
 (defn propagate [c prior-value callers]
   (trx :propagate (:slot @c))
-  #_(println :prop-entry
-           (map c-slot (list* c callers)))
+
   (cond
-   *one-pulse?* (when *per-cell-handler*
-                  (*per-cell-handler* c prior-value))
+   *one-pulse?* (when *custom-propagater*
+                  (*custom-propagater* c prior-value))
    ;; ----------------------------------
    :else
    (do
@@ -385,13 +380,13 @@
 (def ^:dynamic *the-unpropagated* nil)
 
 ;; (defmacro with-one-datapulse+ ((&key (per-cell nil per-cell?) (finally nil finally?)) & body)
-;;   `(call-with-one-datapulse+ (fn () ~@body)
+;;   `(call-with-one-pulse (fn () ~@body)
 ;;      ~@(when per-cell? `(:per-cell (fn (c prior-value prior-value-boundp)
 ;;                                      (declare (ignorable c prior-value prior-value-boundp))
 ;;                                      ,per-cell)))
 ;;      ~@(when finally? `(:finally (fn (cs) (declare (ignorable cs)) ,finally)))))
 
-;; (defn call-with-one-datapulse+
+;; (defn call-with-one-datapulse
 ;;     (f &key
 ;;       (per-cell (fn (c prior-value prior-value?)
 ;;                   (unless (cl-find c *the-unpropagated* :key 'car)
@@ -402,10 +397,10 @@
 ;;                        (propagate c prior-value)))))
 ;;   (assert (not *one-pulse+?*))
 ;;   (data-pulse+-next :client-prop)
-;;   (trx "call-with-one-datapulse+ bumps pulse" @+pulse+)
+;;   (trx "call-with-one-pulse bumps pulse" @+pulse+)
 ;;   (finally
 ;;     (let ((*one-pulse+?* t)
-;;           (*per-cell-handler* per-cell)
+;;           (*custom-propagater* per-cell)
 ;;           (*the-unpropagated* nil))
 ;;       (f)
 ;;       *the-unpropagated*)))

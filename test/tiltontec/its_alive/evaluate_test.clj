@@ -4,6 +4,7 @@
             [tiltontec.its-alive.utility :refer :all]
             [tiltontec.its-alive.globals :refer :all]
             [tiltontec.its-alive.cell-types :refer :all :as cty]
+            [tiltontec.its-alive.cells :refer :all]
             [tiltontec.its-alive.integrity :refer :all]
             [tiltontec.its-alive.observer :refer :all]
             [tiltontec.its-alive.evaluate :refer [cell-read c-reset!]]
@@ -231,6 +232,7 @@
       ; check those rules ran exactly once
       ;
       (doseq [[k v] (seq @run)]
+        (trx :runchk k v)
         (is (and (keyword? k)
                  (= 1 v))))
 
@@ -262,3 +264,42 @@
       ;
       (is (= #{:bb} (c-slots dd :useds)))
       )))
+
+(deftest t-cell-unchanged-test
+  (cells-init)
+ 
+  (let [ob (atom 0)
+        b (c-in 2 :slot :bb
+                :obs (fn-obs (trx :obs-bb!! new old)
+                             (swap! ob inc))
+                :unchanged-if (fn [n p]
+                                (trx :ucif-sees n p)
+                                (and (number? n)
+                                     (number? p)
+                                     (or (and (even? n)(even? p))
+                                         (and (odd? n)(odd? p))))))
+        cct (atom 0)
+        c (c?+ [:slot :cc]
+               (swap! cct inc)
+               (+ 40 (cell-read b)))]
+    (is (= (cell-read c) 42))
+    (is (= (cell-read b) 2))
+    (is (= 1 @ob))
+    (is (= 1 @cct))
+
+
+    (c-reset! b 4)
+    (is (= (cell-read c) 42))
+    (is (= (cell-read b) 4))
+    (is (= 1 @ob))
+    (is (= 1 @cct))
+
+    ;; (c-reset! b 5)
+    ;; (is (= (cell-read c) 45))
+    ;; (is (= (cell-read b) 5))
+    ;; (is (= 2 @ob))
+    ;; (is (= 2 @cct))
+
+
+    ))
+    

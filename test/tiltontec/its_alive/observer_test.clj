@@ -4,20 +4,17 @@
             [tiltontec.its-alive.integrity :refer [with-integrity]]
             [tiltontec.its-alive.evaluate :refer [cell-read c-reset!]]
             [tiltontec.its-alive.observer :refer [defobserver fn-obs]]
+            [tiltontec.its-alive.cells :refer :all]
             ))
 
 (set! *print-level* 3)
 
-;; (isa? (type nil)(type nil))
-
-(def bingo (atom false))
-
-(defobserver :bingo [nil][]
-  (println :bingoooooooooooo!!!!! me new-value old-value c)
-  (reset! bingo true))
 
 (deftest t-formula
-  (let [c (c?+ (:slot :bingo)
+  (let [bingo (atom false)
+        c (c?+ [:slot :bingo
+                :obs (fn-obs
+                      (reset! bingo true))]
                (+ 40 2))]
     (is (ia-type? @c ::cty/cell))
     (is (ia-type? @c ::cty/c-formula))

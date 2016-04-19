@@ -75,11 +75,6 @@
     (is (not (c-optimize c)))
     (is (= :bingo (c-slot c)(c-slot-name c)))))
 
-#_
-(c-rule (c?+ [:slot :c ]
-               (println :bingo)
-               (prog1
-                (str "Hi " ))))
 
 (deftest t-eph-1
   (cells-init)
@@ -124,8 +119,11 @@
       (c-reset! b "Mom")
       (is (= "Hi Mom" (cell-read c)))
       (is (= 3 @boct))
-      (is (= 3 @crun @cobs))
+      (is (= 3 @crun))
+      (is (= 2 @cobs))
       (is (nil? (c-value b)))
       (is (nil? (:value @b))))
     ))
+
+
 
