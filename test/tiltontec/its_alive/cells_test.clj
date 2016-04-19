@@ -126,4 +126,22 @@
     ))
 
 
+(deftest t-c?n
+  (let [a (c-in 42 :slot :aa)
+        b (c?n [:slot :bb]
+              (/ (cell-read a) 2))
+        c (c? (+ 1 (cell-read b)))]
+    (is (= 21 (cell-read b)))
+    (is (= 22 (cell-read c)))
+    (c-reset! b 42)
+    (is (= 42 (cell-read b)))
+    (is (= 43 (cell-read c)))))
 
+(deftest t-c?once
+  (let [a (c-in 42 :slot :aa)
+        b (c?once [:slot :bb]
+              (/ (cell-read a) 2))]
+    (is (= 21 (cell-read b)))
+    (c-reset! a 2)
+    (is (= 2 (cell-read a)))
+    (is (= 21 (cell-read b)))))

@@ -34,7 +34,14 @@
                       (derive ::c-formula ::cell)))
 
 (defn ia-type? [it typ]
-  (isa? ia-types (type it) typ))
+  (if (any-ref? it)
+    (ia-type? @it typ)
+    (isa? ia-types (type it) typ)))
+
+(defn c-formula? [c]
+  (if (any-ref? c)
+    (c-formula? @c)
+    (ia-type? c ::c-formula)))
 
 (defn c-ref? [x]
   (and (instance? clojure.lang.Ref x)

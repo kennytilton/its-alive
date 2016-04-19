@@ -11,6 +11,7 @@
 (defn record-dependency [used]
   (when-not (c-optimized-away? used)
     (assert *depender*)
+    (trx :reco-dep!!! :used (c-slot used) :caller (c-slot *depender*))
     (rmap-setf (:useds *depender*)
                (conj (c-useds *depender*) used))
     (caller-ensure used *depender*)))
@@ -45,7 +46,7 @@
   ;; --- also easy with an optimize edge case lost to history -------
   (and (c-input? c)
        (c-valid? c) ;; a c?n (ruled-then-input) cell will not be valid at first
-       (not (and (ia-type? c :c-formula)
+       (not (and (c-formula? c)
                  (= (c-optimize c) :when-value-t)
                  (nil? (c-value c)))))
   (c-value c)
@@ -65,7 +66,7 @@
   (do ;; we seem to need update, but...
     ;; (println :seem-to-need)
     (unless (c-current? c)
-            ;; (println :not-current)
+            (println :not-current-so-calc)
             ;; happens if dependent changed and its observer read/updated me
             (calculate-and-set c :evic ensurer))
     (c-value c))
@@ -95,17 +96,20 @@
 (declare calculate-and-link
          c-value-assume)
 
+
 (defn calculate-and-set [c dbgid dbgdata]
-  (un-stopped
-   (let [raw-value (calculate-and-link c)]
-     ;; Lisp Cells allowed rules to return a second value indicating whether or not to propagate
-     ;; Let's see if we need that and then work around missing multiple value return
-     (unless (c-optimized-away? c)
-             ;; (println :cn-set-assuming)
-             ;; this check for optimized-away? arose because a rule using without-c-dependency
-             ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
-             ;; re-exit will be of an optimized away cell, which we need not sv-assume on...
-             (c-value-assume c raw-value nil false)))))
+  (trx :calc-n-set (c-slot c) dbgid)
+  (wtrx (0 1000 "calc-n-set-entry" (c-slot c) dbgid)
+        (un-stopped
+         (let [raw-value (calculate-and-link c)]
+           ;; Lisp Cells allowed rules to return a second value indicating whether or not to propagate
+           ;; Let's see if we need that and then work around missing multiple value return
+           (unless (c-optimized-away? c)
+                   ;; (println :cn-set-assuming)
+                   ;; this check for optimized-away? arose because a rule using without-c-dependency
+                   ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
+                   ;; re-exit will be of an optimized away cell, which we need not sv-assume on...
+                   (c-value-assume c raw-value nil false))))))
 
 (declare unlink-from-used)
 
@@ -115,7 +119,7 @@
             *defer-changes* true]
     ;; redecide dependencies each invocation based on actual use
     ;; unsubscribe from dependencies, then clear own record of them
-    (unlink-from-used c)
+    (unlink-from-used c :pre-rule-clear)
     (assert (c-rule c) (format "No rule in %s type %s" (:slot c)(type @c)))
     ((c-rule c) c)))
 
@@ -160,52 +164,58 @@
    (c-value-assume c new-value nil true)))
 
 (defn c-value-assume [c new-value propagation-code initiate-integrity?]
-
   (assert (c-ref? c))
-  (trx :cv-ass (:slot @c) new-value)
-  (prog1 new-value ;; sans doubt
-         (without-c-dependency
-          (let [prior-value (c-value c)
-                prior-state (c-value-state c)]
+  (wtrx (0 1000 :cv-ass (:slot @c) new-value)
+        (prog1 new-value ;; sans doubt
+               (without-c-dependency
+                (let [prior-value (c-value c)
+                      prior-state (c-value-state c)]
 
-            ;; --- cell maintenance ---
-            ;; hhhack: new for 4/19/2016: even if no news at
-            ;; least honor the reset!
-            ;;
-            (rmap-setf (:value c) new-value)
-            (rmap-setf (:state c) :awake)
-            ;; 
-            ;; --- model maintenance ---
-            (when (and (c-model c)
-                       (c-synaptic? c) )
-              (md-slot-value-store (c-model c) (c-slot-name c) new-value))
-        
-            (c-pulse-update c :slotv-assume)
-            
-            (when (or (= propagation-code :propagate) ;; forcing
-                      (not (some #{prior-state} [:valid :uncurrent]))
-                      (c-value-changed? c new-value prior-value))
-              ;; --- something happened ---
-              ;; we may be overridden by a :no-propagate below, but anyway
-              ;; we now can look to see if we can be optimized away
-
-              (let [callers (c-callers c)] ;; get a copy before we might optimize away
-                (when-let [optimize (and (ia-type? c 'c-formula)
-                                         (c-optimize c))]
-                  (case optimize
-                    :when-value-t (when (c-value c)
-                                    (unlink-from-used c))
-                    true (optimize-away?! c))) ;; so coming propagation has it visible
-        
-                ;; --- data flow propagation -----------
-                (unless (= propagation-code :no-propagate)
-                        (let [pfn #(propagate c prior-value callers)]
-                          (if initiate-integrity?
-                            (with-integrity (:change :c-reset!) (pfn))
-                            (pfn))))))))))
+                  ;; --- cell maintenance ---
+                  ;; hhhack: new for 4/19/2016: even if no news at
+                  ;; least honor the reset!
+                  ;;
+                  (rmap-setf (:value c) new-value)
+                  (rmap-setf (:state c) :awake)
+                  ;; 
+                  ;; --- model maintenance ---
+                  (when (and (c-model c)
+                             (c-synaptic? c) )
+                    (md-slot-value-store (c-model c) (c-slot-name c) new-value))
+                  
+                  (c-pulse-update c :slotv-assume)
+                  
+                  (when (or (= propagation-code :propagate) ;; forcing
+                            (not (some #{prior-state} [:valid :uncurrent]))
+                            (c-value-changed? c new-value prior-value))
+                    ;; --- something happened ---
+                    ;; we may be overridden by a :no-propagate below, but anyway
+                    ;; we now can look to see if we can be optimized away
+                    (trx :sth-happened-to (c-slot c) (c-value c) new-value)
+                    (let [callers (c-callers c)] ;; get a copy before we might optimize away
+                      (trx :sigh (type @c) (c-optimize c))
+                      (when-let [optimize (and (c-formula? c)
+                                               (c-optimize c))]
+                        (trx :wtf optimize)
+                        (case optimize
+                          :when-value-t (when (c-value c)
+                                          (trx :when-value-t (c-slot c))
+                                          (unlink-from-used c :when-value-t))
+                          true (optimize-away?! c))) ;; so coming propagation has it visible
+                      
+                      ;; --- data flow propagation -----------
+                      (unless (= propagation-code :no-propagate)
+                              (trx :prop-by (c-slot c) :to
+                                   (when-let [c1 (first callers)]
+                                     (c-slot c1)))
+                              (let [pfn #(propagate c prior-value callers)]
+                                (if initiate-integrity?
+                                  (with-integrity (:change :c-reset!) (pfn))
+                                  (pfn)))))))))))
 
 ;; --- unlinking ----------------------------------------------
-(defn unlink-from-used [c]
+(defn unlink-from-used [c why]
+  (trx :unlinking!!! (c-slot c) why)
   (for [used (c-useds c)]
     (do
         (rmap-setf (:callers used) (disj (c-callers used) c))))
@@ -224,7 +234,7 @@
 ;; saves a lot of work at runtime.
 
 (defn c-optimize-away?! [c]
-  (when (and (ia-type? c ::c-formula)
+  (when (and (c-formula? c)
              (nil? (c-useds c))
              (c-optimize c)
              (not (c-optimized-away? c)) ;; c-streams (FNYI) may come this way repeatedly even if optimized away
@@ -312,7 +322,7 @@
              (not-to-be ownee))))
 
        (propagate-to-callers c callers)
-       ;(println :chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
+       (println :obs-chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
        (when (or (> @+pulse+ (c-pulse-observed c))
                  (some #{(c-lazy c)}
                        '(:once-asked :always true))) ;; messy: these can get setfed/propagated twice in one pulse+
@@ -351,6 +361,7 @@
           (do (trx "WHOAA!!!! dead by time :tell-deps dispatched; bailing" c))
           (binding [*causation* causation]
             (doseq [caller (seq callers)]
+              (trx :prop-to-caller (c-slot caller) :by (c-slot c))
               (cond ;; lotsa reasons not to proceed
                (or (= (c-state caller) :quiesced)
                    (some #{(c-lazy caller)} [true :always :once-asked])

@@ -294,12 +294,9 @@
     (is (= 1 @ob))
     (is (= 1 @cct))
 
-    ;; (c-reset! b 5)
-    ;; (is (= (cell-read c) 45))
-    ;; (is (= (cell-read b) 5))
-    ;; (is (= 2 @ob))
-    ;; (is (= 2 @cct))
-
-
-    ))
+    (c-reset! b 5)
+    (is (= (cell-read c) 45))
+    (is (= (cell-read b) 5))
+    (is (= 2 @ob))
+    (is (= 2 @cct))))
     

@@ -77,7 +77,7 @@
 
 (defmacro c?+n [& body]
   `(make-c-formula
-    :input? t
+    :input? true
     :code '~body
     :value unevaluated
     :rule (c-fn ~@body)))
@@ -85,14 +85,14 @@
 (defmacro c?n [& body]
   `(make-c-formula
     :code '(without-c-dependency ~@body)
-    :input? t
+    :input? true
     :value unevaluated
     :rule (c-fn (without-c-dependency ~@body))))
 
 (defmacro c_?n [& body]
   `(make-c-formula
     :code '(without-c-dependency ~@body)
-    :input? t
+    :input? true
     :lazy :until-asked
     :value unevaluated
     :rule (c-fn (without-c-dependency ~@body))))
@@ -100,8 +100,8 @@
 (defmacro c?n-dbg [& body]
   `(make-c-formula
     :code '(without-c-dependency ~@body)
-    :input? t
-    :debug t
+    :input? true
+    :debug true
     :value unevaluated
     :rule (c-fn (without-c-dependency ~@body))))
 
@@ -109,7 +109,7 @@
   `(make-c-formula
     :optimize :when-value-t
     :code '~body
-    :input? t
+    :input? true
     :value unevaluated
     :rule (c-fn ~@body)
     ~@args))
@@ -118,15 +118,14 @@
   `(make-c-formula
     :code '(without-c-dependency ~@body)
     :input? nil
-    :value unevaluatedbpmn token splitting
-
+    :value unevaluated
     :rule (c-fn (without-c-dependency ~@body))))
 
 (defmacro c_1 [& body]
   `(make-c-formula
     :code '(without-c-dependency ~@body)
     :input? nil
-    :lazy t
+    :lazy true
     :value unevaluated
     :rule (c-fn (without-c-dependency ~@body))))
 
@@ -137,19 +136,21 @@
   `(make-c-formula
     :code '~body
     :value unevaluated
-    :debug t
+    :debug true
     :rule (c-fn ~@body)))
 
-(defmacro c?_ [& body]
+(defmacro c?_  [[& options] & body]
   `(make-c-formula
+    ~@options
     :code '~body
     :value unevaluated
-    :lazy t
+    :lazy true
     :rule (c-fn ~@body)))
 
-(defmacro c_? [& body]
+(defmacro c_? [[& options] & body]
   "Lazy until asked, then eagerly propagating"
   `(make-c-formula
+    ~@options
     :code '~body
     :value unevaluated
     :lazy :until-asked
@@ -159,10 +160,10 @@
   "Lazy until asked, then eagerly propagating"
   `(make-c-formula
     :code '~body
-    :value unevalua
+    :value unevaluated
     :lazy :until-asked
     :rule (c-fn ~@body)
-    :debug t))
+    :debug true))
 
 ;; hhhhack add validation somewhere of lazy option
 
