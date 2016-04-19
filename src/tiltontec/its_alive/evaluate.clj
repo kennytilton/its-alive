@@ -7,11 +7,12 @@
       [tiltontec.its-alive.observer :refer :all]
       [tiltontec.its-alive.integrity :refer :all]))
 
+(set! *print-level* 3)
 
 (defn record-dependency [used]
   (when-not (c-optimized-away? used)
     (assert *depender*)
-    (trx :reco-dep!!! :used (c-slot used) :caller (c-slot *depender*))
+    (trx nil :reco-dep!!! :used (c-slot used) :caller (c-slot *depender*))
     (rmap-setf (:useds *depender*)
                (conj (c-useds *depender*) used))
     (caller-ensure used *depender*)))
@@ -64,22 +65,22 @@
           (or (> (c-pulse-last-changed used)(c-pulse c))
               (recur urest)))))
   (do ;; we seem to need update, but...
-    ;; (println :seem-to-need)
+    ;; (trx nil :seem-to-need)
     (unless (c-current? c)
-            (println :not-current-so-calc)
+            (trx nil :not-current-so-calc)
             ;; happens if dependent changed and its observer read/updated me
             (calculate-and-set c :evic ensurer))
     (c-value c))
 
   ;; we were behind the pulse but not affected by the changes that moved the pulse
   ;; record that we are current to avoid future checking:
-  :else (do ;(println :just-pulse)
+  :else (do ;(trx nil :just-pulse)
             (c-pulse-update c :valid-uninfluenced)
             (c-value c))))
 
 
 (defn cell-read [c]
-  (println :cell-read :entry (:slot @c))
+  ;; (trx :cell-read :entry (:slot @c))
   (prog1
    (with-integrity ()
      (let [prior-value (c-value c)]
@@ -98,14 +99,14 @@
 
 
 (defn calculate-and-set [c dbgid dbgdata]
-  (trx :calc-n-set (c-slot c) dbgid)
-  (wtrx (0 1000 "calc-n-set-entry" (c-slot c) dbgid)
+  (trx nil :calc-n-set (c-slot c) dbgid)
+  (do ;; wtrx (0 1000 "calc-n-set-entry" (c-slot c) dbgid)
         (un-stopped
          (let [raw-value (calculate-and-link c)]
            ;; Lisp Cells allowed rules to return a second value indicating whether or not to propagate
            ;; Let's see if we need that and then work around missing multiple value return
            (unless (c-optimized-away? c)
-                   ;; (println :cn-set-assuming)
+                   ;; (trx nil :cn-set-assuming)
                    ;; this check for optimized-away? arose because a rule using without-c-dependency
                    ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
                    ;; re-exit will be of an optimized away cell, which we need not sv-assume on...
@@ -132,10 +133,10 @@
 (defn awaken-cell-reset []
   (remove-all-methods awaken-cell)
   (defmethod awaken-cell :default [c]
-    #_ (println :awaken-cell-fall-thru  (type @c))))
+    #_ (trx nil :awaken-cell-fall-thru  (type @c))))
 
 (defmethod awaken-cell :default [slot me new-val old-val]
-  #_ (println :obs-fall-thru  slot (type @me) new-val old-val))
+  #_ (trx nil :obs-fall-thru  slot (type @me) new-val old-val))
 
 (defmethod awaken-cell ::cell [c]
   (assert (c-input? c))
@@ -165,7 +166,7 @@
 
 (defn c-value-assume [c new-value propagation-code initiate-integrity?]
   (assert (c-ref? c))
-  (wtrx (0 1000 :cv-ass (:slot @c) new-value)
+  (do ;; wtrx (0 1000 :cv-ass (:slot @c) new-value)
         (prog1 new-value ;; sans doubt
                (without-c-dependency
                 (let [prior-value (c-value c)
@@ -191,21 +192,21 @@
                     ;; --- something happened ---
                     ;; we may be overridden by a :no-propagate below, but anyway
                     ;; we now can look to see if we can be optimized away
-                    (trx :sth-happened-to (c-slot c) (c-value c) new-value)
+                    (trx nil :sth-happened-to (c-slot c) (c-value c) new-value)
                     (let [callers (c-callers c)] ;; get a copy before we might optimize away
-                      (trx :sigh (type @c) (c-optimize c))
+                      (trx nil :sigh (type @c) (c-optimize c))
                       (when-let [optimize (and (c-formula? c)
                                                (c-optimize c))]
-                        (trx :wtf optimize)
+                        (trx nil :wtf optimize)
                         (case optimize
                           :when-value-t (when (c-value c)
-                                          (trx :when-value-t (c-slot c))
+                                          (trx nil :when-value-t (c-slot c))
                                           (unlink-from-used c :when-value-t))
                           true (optimize-away?! c))) ;; so coming propagation has it visible
                       
                       ;; --- data flow propagation -----------
                       (unless (= propagation-code :no-propagate)
-                              (trx :prop-by (c-slot c) :to
+                              (trx nil :prop-by (c-slot c) :to
                                    (when-let [c1 (first callers)]
                                      (c-slot c1)))
                               (let [pfn #(propagate c prior-value callers)]
@@ -215,7 +216,7 @@
 
 ;; --- unlinking ----------------------------------------------
 (defn unlink-from-used [c why]
-  (trx :unlinking!!! (c-slot c) why)
+  (trx nil :unlinking!!! (c-slot c) why)
   (for [used (c-useds c)]
     (do
         (rmap-setf (:callers used) (disj (c-callers used) c))))
@@ -264,7 +265,7 @@
 (defmethod unchanged-test :default [self slotname] =)
 
 (defn c-value-changed? [c new-value old-value]
-  (trx :unchanged? (:slot @c) new-value old-value)
+  (trx nil :unchanged? (:slot @c) new-value old-value)
   (not ((or (:unchanged-if @c)
             (unchanged-test (c-model c) (c-slot c)))
         new-value old-value)))
@@ -292,7 +293,7 @@
          not-to-be)
 
 (defn propagate [c prior-value callers]
-  (trx :propagate (:slot @c))
+  (trx nil :propagate (:slot @c))
 
   (cond
    *one-pulse?* (when *custom-propagater*
@@ -322,7 +323,7 @@
              (not-to-be ownee))))
 
        (propagate-to-callers c callers)
-       (println :obs-chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
+       (trx nil :obs-chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
        (when (or (> @+pulse+ (c-pulse-observed c))
                  (some #{(c-lazy c)}
                        '(:once-asked :always true))) ;; messy: these can get setfed/propagated twice in one pulse+
@@ -361,7 +362,7 @@
           (do (trx "WHOAA!!!! dead by time :tell-deps dispatched; bailing" c))
           (binding [*causation* causation]
             (doseq [caller (seq callers)]
-              (trx :prop-to-caller (c-slot caller) :by (c-slot c))
+              (trx nil :prop-to-caller (c-slot caller) :by (c-slot c))
               (cond ;; lotsa reasons not to proceed
                (or (= (c-state caller) :quiesced)
                    (some #{(c-lazy caller)} [true :always :once-asked])
@@ -370,7 +371,7 @@
                    ;; above: c would have been removed from any c-useds if optimized
                    ;; so caller does not look like a user but it needs one more notification
                    (c-current? caller)) ;; happens if I changed when caller used me in current pulse+
-               (trx not-notifying (c-slot caller)
+               (trx nil :not-notifying (c-slot caller)
                     (c-current? caller) @+pulse+ (c-pulse caller)
                     )
                :else

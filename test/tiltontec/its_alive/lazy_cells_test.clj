@@ -58,22 +58,22 @@
                :obs (fn-obs (swap! xo inc))
                :optimize :when-value-t]
               (swap! xr inc)
-              (trx :reading-a!!!)
+              (trx nil :reading-a!!!)
               (when-let [av (cell-read a)]
                 (when (> av 1)
                   (+ av 40))))]
     (is (nil? (cell-read x)))
     (is (= #{a} (c-useds x)))
     (c-reset! a 1)
-    (trx :reset-finished!!!!!!!!!!)
+    (trx nil :reset-finished!!!!!!!!!!)
     (is (nil? (cell-read x)))
     (is (= #{a} (c-useds x)))
-    (trx :reset-2-beginning!!!!!!!!!!!!)
+    (trx nil :reset-2-beginning!!!!!!!!!!!!)
     (c-reset! a 2)
-    (trx :reset-2-finished!!!!!!!!!!)
+    (trx nil :reset-2-finished!!!!!!!!!!)
     (is (= 42 (cell-read x)))
     (is (empty? (c-useds x)))
-    (trx :useds (c-useds x))
+    (trx nil :useds (c-useds x))
     (is (empty? (c-callers x)))
     ))
 

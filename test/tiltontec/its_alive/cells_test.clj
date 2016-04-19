@@ -61,7 +61,7 @@
 
 (deftest t-c?+
   (let [c (c?+ (:optimize false :slot :bingo)
-               (println :cool)
+               (trx nil :cool)
                (+ 40 2))]
     (is (isa? ia-types (type @c) ::cty/c-formula))
     (is (c-ref? c))
@@ -87,18 +87,18 @@
         cobs (atom 0)
         c (c?+ [:slot :c 
                 :obs (fn-obs (swap! cobs inc))]
-               (println :bingo)
+               (trx nil :bingo)
                (swap! crun inc)
                (prog1
                 (str "Hi " (cell-read b))
-                (trx :cellread!! @b)))]
+                (trx nil :cellread!! @b)))]
     (assert (c-rule c) "Early no rule")
     (is (nil? (c-value b)))
-    (println :valstate (c-value-state b))
+    (trx nil :valstate (c-value-state b))
     (is (= :valid (c-value-state b)))
     (is (c-valid? b))
-    (println b)
-    (println @b)
+    (trx nil b)
+    (trx nil @b)
     (is (c-valid? b))
     (is (= "Hi " (cell-read c)))
     (is (= 1 @boct))
@@ -106,7 +106,7 @@
     (is (nil? (:value @b)))
 
     (do
-      (trx :first-b-reset!!!!!!!!!!!)
+      (trx nil :first-b-reset!!!!!!!!!!!)
       (c-reset! b "Mom")
       (is (= "Hi Mom" (cell-read c)))
       (is (= 2 @boct))
@@ -115,7 +115,7 @@
       (is (nil? (:value @b))))
 
     (do
-      (trx :second-b-reset!!!!!!!!!!!)
+      (trx nil :second-b-reset!!!!!!!!!!!)
       (c-reset! b "Mom")
       (is (= "Hi Mom" (cell-read c)))
       (is (= 3 @boct))

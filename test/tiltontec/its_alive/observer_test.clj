@@ -1,5 +1,6 @@
 (ns tiltontec.its-alive.observer-test
   (:require [clojure.test :refer :all]
+            [tiltontec.its-alive.utility :refer :all]
             [tiltontec.its-alive.cell-types :refer :all :as cty]
             [tiltontec.its-alive.integrity :refer [with-integrity]]
             [tiltontec.its-alive.evaluate :refer [cell-read c-reset!]]
@@ -31,7 +32,7 @@
 (def bingo2 (atom false))
 
 (defobserver :bingo2 [nil][]
-  (println :bingoo2222222222!!!!! me new-value old-value c)
+  ;; (trx nil :bingoo2222222222!!!!! me new-value old-value c) 
   (reset! bingo2 true))
 
 (deftest test-input
@@ -51,11 +52,11 @@
   (let [bobs (atom nil)
         b (c-in 2 :slot :bb
                 :obs (fn-obs
-                       (println slot me new old)
+                       (trx nil slot me new old)
                        (reset! bobs new)))
         cobs (atom nil)
         c (c?+ [:obs (fn-obs [slot me new old c]
-                       (println slot me new old)
+                       (trx nil slot me new old)
                        (reset! cobs new))]
                (* 10 (cell-read b)))]
     (dosync

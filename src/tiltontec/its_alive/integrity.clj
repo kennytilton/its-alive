@@ -5,6 +5,8 @@
 
 ;; --- the pulse ------------------------------
 
+(set! *print-level* 3)
+
 (def ^:dynamic *one-pulse?* false)
 
 (def ^:dynamic *dp-log* false)
@@ -15,7 +17,7 @@
   ([pulse-info]
    (unless *one-pulse?*
            #_(when *dp-log*
-               (trx "dp-next> " (inc @+pulse+) pulse-info))
+               (trx nil "dp-next> " (inc @+pulse+) pulse-info))
            (alter +pulse+ inc)))) ;; hhack try as commute
 
 #_
@@ -78,7 +80,7 @@
   ([q opcode]
    ;;(println :ufb-do opcode)
    (when-let [[defer-info task] (fifo-pop q)]
-     (trx :ufb-do-yep defer-info task)
+     (trx nil :ufb-do-yep defer-info task)
      (task opcode defer-info)
      (recur q opcode))))
 
@@ -174,7 +176,7 @@
               (ufb-assert-q-empty :change)))))))
 
 (defn ephemeral-reset [rc]
-  (trx :eph-reset?????? (:slot @rc))
+  (trx nil :eph-reset?????? (:slot @rc))
   (when (c-ephemeral? rc) ;; allow call on any cell, catch here
     ;
     ; as of Cells3 we defer resetting ephemerals because everything
@@ -182,7 +184,7 @@
     ; within finish_business we are sure all callers have been recalculated
     ; and all observers completed (which happens with recalc).
     ;
-    (trx :ephh-reset!!! (:slot @rc))
+    (trx nil :ephh-reset!!! (:slot @rc))
     (with-integrity (:ephemeral-reset rc)
       (when-let [me (:me @rc)]
         ;; presumption next is that model cells live in

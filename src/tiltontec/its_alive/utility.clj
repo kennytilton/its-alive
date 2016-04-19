@@ -1,7 +1,7 @@
 (ns tiltontec.its-alive.utility
   (:require   [clojure.string :as $]))
 
-(set! *print-level* 10) ;; lose this if we lose recursive data structures
+(set! *print-level* 2) ;; lose this if we lose recursive data structures
 
 (defmacro prog1 [& body]
   `(let [result# ~(first body)]

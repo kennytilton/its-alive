@@ -8,7 +8,6 @@
 (deftest fake-cl
   (is (= 42 (prog1 42 43 44)))
   (is (= 42 (b-when x (+ 21 21)
-                    (print :cool)
                     x)))
   (is (nil? (b-when x false
                     42)))
@@ -38,11 +37,11 @@
     (is (= 42 (jj-boom x)))
     (is (= 0 (:value @x)))
     (dosync (rmap-setf (:value x) 42))
-    (println :xxx x @x (:value @x))
+    (trx nil :xxx x @x (:value @x))
     (is (= 42 (:value @x)))
     (is (let [j (dosync (rmap-setf (:value x) 43))]
-                                        ;(println :xxx x @x (:value @x))          
-                                        ;(println :j j (type j))
+                                        ;(trx nil :xxx x @x (:value @x))          
+                                        ;(trx nil :j j (type j))
           (= 43 j)))
     (is (= 44 (dosync (rmap-setf (:value x) 44))))
     ))

@@ -35,7 +35,7 @@
     (is (not (c-input? c)))
     (is (not (c-valid? c)))
     (is (nil? (c-model c)))
-    (println :readddd (cell-read c))
+    (trx nil :readddd (cell-read c))
     (is (= (cell-read c) 42))
     ))
 
@@ -66,7 +66,7 @@
 
 (def yowza (atom 0))
 (defobserver :yowza [nil][]
-  (trx yowza!!!!!!!!!!! slot new-value old-value)
+  (trx nil :yowza!!!!!!!!!!! slot new-value old-value)
   (reset! yowza new-value))
 
   
@@ -217,9 +217,9 @@
     ;; ;;
     (binding [*trx?* true]
       (rset)
-      (trx reset!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
+      (trx nil :reset!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
       (doseq [[k v] (seq @obs)]
-        (trx obschk k v)
+        (trx nil :obschk k v)
         (is (and (keyword? k)
                  (= 0 v))))
       (c-reset! aa (inc (cr aa)))
@@ -232,7 +232,7 @@
       ; check those rules ran exactly once
       ;
       (doseq [[k v] (seq @run)]
-        (trx :runchk k v)
+        (trx nil :runchk k v)
         (is (and (keyword? k)
                  (= 1 v))))
 
@@ -244,7 +244,7 @@
       ; check those observers ran exactly once
       ;
       (doseq [[k v] (seq @obs)]
-        (trx obschk k v)
+        (trx nil :obschk k v)
         (is (and (keyword? k)
                  (= 1 v))))
     
@@ -270,10 +270,10 @@
  
   (let [ob (atom 0)
         b (c-in 2 :slot :bb
-                :obs (fn-obs (trx :obs-bb!! new old)
+                :obs (fn-obs (trx nil :obs-bb!! new old)
                              (swap! ob inc))
                 :unchanged-if (fn [n p]
-                                (trx :ucif-sees n p)
+                                (trx nil :ucif-sees n p)
                                 (and (number? n)
                                      (number? p)
                                      (or (and (even? n)(even? p))

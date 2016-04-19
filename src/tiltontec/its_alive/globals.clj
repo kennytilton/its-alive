@@ -6,7 +6,7 @@
     Cells -- Automatic Dataflow Managememnt
 
 )
-(set! *print-level* 8) ;; cells are recursive data for now
+(set! *print-level* 3) ;; cells are recursive data for now
 
 ;; --- the Cells beef -----------------------
 (def +pulse+ (ref 0))
