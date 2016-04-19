@@ -233,7 +233,7 @@
 ;; optimizing away cells who turn out not to depend on anyone 
 ;; saves a lot of work at runtime.
 
-(defn c-optimize-away?! [c]
+(defn optimize-away?! [c]
   (when (and (c-formula? c)
              (nil? (c-useds c))
              (c-optimize c)
@@ -252,7 +252,7 @@
       (alter caller assoc :useds (remove #{c} (c-useds caller)))
       (caller-drop c caller)
       ;;; (trc "nested opti" c caller)
-      (c-optimize-away?! caller) ;; rare but it happens when rule says (or .cache ...)
+      (optimize-away?! caller) ;; rare but it happens when rule says (or .cache ...)
       )))
 
 
