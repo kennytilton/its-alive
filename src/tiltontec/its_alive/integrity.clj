@@ -76,8 +76,9 @@
    (ufb-do (ufb-queue opcode) opcode))
 
   ([q opcode]
-   ;; (println :ufb-do opcode)
+   (println :ufb-do opcode)
    (when-let [[defer-info task] (fifo-pop q)]
+     (trx :ufb-do-yep defer-info task)
      (task opcode defer-info)
      (recur q opcode))))
 
@@ -173,13 +174,15 @@
               (ufb-assert-q-empty :change)))))))
 
 (defn ephemeral-reset [rc]
-  (when (c-ephemeral? rc) ;; air bag
+  (trx :eph-reset?????? (:slot @rc))
+  (when (c-ephemeral? rc) ;; allow call on any cell, catch here
     ;
     ; as of Cells3 we defer resetting ephemerals because everything
     ; else gets deferred and we cannot /really/ reset it until
     ; within finish_business we are sure all callers have been recalculated
     ; and all observers completed (which happens with recalc).
     ;
+    (trx :ephh-reset!!! (:slot @rc))
     (with-integrity (:ephemeral-reset rc)
       (when-let [me (:me @rc)]
         ;; presumption next is that model cells live in

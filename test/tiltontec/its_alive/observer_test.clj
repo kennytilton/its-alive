@@ -1,7 +1,6 @@
 (ns tiltontec.its-alive.observer-test
   (:require [clojure.test :refer :all]
             [tiltontec.its-alive.cell-types :refer :all :as cty]
-            [tiltontec.its-alive.constructor :refer :all]
             [tiltontec.its-alive.integrity :refer [with-integrity]]
             [tiltontec.its-alive.evaluate :refer [cell-read c-reset!]]
             [tiltontec.its-alive.observer :refer [defobserver fn-obs]]

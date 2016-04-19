@@ -41,6 +41,7 @@
   ;; --- easy way out --------------------------
   (c-current? c)
   (c-value c)
+
   ;; --- also easy with an optimize edge case lost to history -------
   (and (c-input? c)
        (c-valid? c) ;; a c?n (ruled-then-input) cell will not be valid at first
@@ -77,6 +78,7 @@
 
 
 (defn cell-read [c]
+  (println :cell-read :entry (:slot @c))
   (prog1
    (with-integrity ()
      (let [prior-value (c-value c)]
@@ -112,6 +114,7 @@
     ;; redecide dependencies each invocation based on actual use
     ;; unsubscribe from dependencies, then clear own record of them
     (unlink-from-used c)
+    (assert (c-rule c) (format "No rule in %s type %s" (:slot c)(type @c)))
     ((c-rule c) c)))
 
 ;;; --- awakening ------------------------------------
@@ -283,6 +286,7 @@
          not-to-be)
 
 (defn propagate [c prior-value callers]
+  (trx :propagate (:slot @c))
   #_(println :prop-entry
            (map c-slot (list* c callers)))
   (cond

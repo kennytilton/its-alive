@@ -118,7 +118,8 @@
   `(make-c-formula
     :code '(without-c-dependency ~@body)
     :input? nil
-    :value unevaluated
+    :value unevaluatedbpmn token splitting
+
     :rule (c-fn (without-c-dependency ~@body))))
 
 (defmacro c_1 [& body]
@@ -158,7 +159,7 @@
   "Lazy until asked, then eagerly propagating"
   `(make-c-formula
     :code '~body
-    :value unevaluated
+    :value unevalua
     :lazy :until-asked
     :rule (c-fn ~@body)
     :debug t))
@@ -172,15 +173,11 @@
     :rule (c-fn ~@body)
     ~@keys))
 
-(defn c-in
-  ([value & option-kvs]
-   (apply make-cell
-          (list* :value value
-                 :input? true
-                 option-kvs)))
-  ([value]
-   (make-cell :value value
-              :input? true)))
+(defn c-in [value & option-kvs]
+  (apply make-cell
+         (list* :value value
+                :input? true
+                option-kvs)))
 
 :cells-ok
 

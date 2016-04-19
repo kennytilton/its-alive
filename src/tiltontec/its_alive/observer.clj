@@ -3,35 +3,7 @@
         [tiltontec.its-alive.globals :refer :all]
         [tiltontec.its-alive.cell-types :refer :all]))
 
-
-(def ^:dynamic *unobserved* [])
-
-(defmacro with-obs [& body]
-  `(call-with-obs (fn [] ~@body)))
-
-(defn call-with-obs [fn]
-  (binding [*unobserved* (atom [])] ;;(transient [])]
-    (let [r (fn)]
-     ;; (trx with-obs-body-returned r)
-     (let [fns @*unobserved*] ;;(persistent! *unobserved*)]
-       ;; (trx with-obs-mopping (count fns))
-       (doseq [fn fns]
-         (assert fn)
-         (assert (fn? fn) (str "with-obs> observer not fn?: " fn))
-         (fn)
-         ;; (trx obs-returned-ok 42)
-         )
-       ;; (trx :with-obs-done-mopping 42)
-       )
-     r)))
-
-(defn obs-dispatch [slot-name me new-val old-val c]
-  [slot-name
-   (type (when (md-ref? me) @me))
-   (type new-val)
-   (type old-val)])
-
-(defmulti observe obs-dispatch #_(fn [slot-name me new-val old-val c]
+(defmulti observe (fn [slot-name me new-val old-val c]
                     [slot-name
                      (type (when (md-ref? me) @me))
                      (type new-val)
@@ -62,6 +34,15 @@
                                    '(me new-value old-value c)))]
     `(defmethod tiltontec.its-alive.observer/observe [~slot ~@ftypes][~'slot ~@fparams]
        ~@body)))
+
+(defmacro fn-obs
+  "Shortcut definer for cell-specific observers. 
+body can be multiple sexprs with access to
+call parameters: slot, me, new, old, and c."
+  [& body]
+  `(fn [~'slot ~'me ~'new ~'old ~'c]
+     ~@body))
+     
 
 (defn c-observe
   ([c why]

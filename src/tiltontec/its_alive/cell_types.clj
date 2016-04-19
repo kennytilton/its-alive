@@ -62,12 +62,12 @@
   (:slot @rc))
 
 (defn c-value-state [rc]
-  (when-let [v (c-value rc)]
+  (let [v (c-value rc)]
     (cond
-     (= v unbound) :unbound
-     (= v unevaluated) :unevaluated
-     (= v uncurrent) :uncurrent
-     :else :valid)))
+      (= v unbound) :unbound
+      (= v unevaluated) :unevaluated
+      (= v uncurrent) :uncurrent
+      :else :valid)))
 
 (defn c-unbound? [rc]
   (= :unbound (c-value-state rc)))

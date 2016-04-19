@@ -1,8 +1,12 @@
-(ns tiltontec.its-alive.constructor-test
+
+(ns tiltontec.its-alive.cells-test
   (:require [clojure.test :refer :all]
+            [tiltontec.its-alive.utility :refer :all] 
             [tiltontec.its-alive.cell-types :refer :all :as cty]
             [tiltontec.its-alive.globals :refer :all]
-            [tiltontec.its-alive.constructor :refer :all]
+            [tiltontec.its-alive.observer :refer :all]
+            [tiltontec.its-alive.evaluate :refer :all]
+            [tiltontec.its-alive.cells :refer :all]
             ))
 
 (set! *print-level* 3)
@@ -70,8 +74,58 @@
     (is (nil? (c-model c)))
     (is (not (c-optimize c)))
     (is (= :bingo (c-slot c)(c-slot-name c)))))
-    
 
+#_
+(c-rule (c?+ [:slot :c ]
+               (println :bingo)
+               (prog1
+                (str "Hi " ))))
 
+(deftest t-eph-1
+  (cells-init)
+  (let [boct (atom 0)
+        b (c-in nil
+                :slot :b
+                :obs (fn-obs (swap! boct inc))
+                :ephemeral? true)
+        crun (atom 0)
+        cobs (atom 0)
+        c (c?+ [:slot :c 
+                :obs (fn-obs (swap! cobs inc))]
+               (println :bingo)
+               (swap! crun inc)
+               (prog1
+                (str "Hi " (cell-read b))
+                (trx :cellread!! @b)))]
+    (assert (c-rule c) "Early no rule")
+    (is (nil? (c-value b)))
+    (println :valstate (c-value-state b))
+    (is (= :valid (c-value-state b)))
+    (is (c-valid? b))
+    (println b)
+    (println @b)
+    (is (c-valid? b))
+    (is (= "Hi " (cell-read c)))
+    (is (= 1 @boct))
+    (is (= 1 @crun @cobs))
+    (is (nil? (:value @b)))
 
+    (do
+      (trx :first-b-reset!!!!!!!!!!!)
+      (c-reset! b "Mom")
+      (is (= "Hi Mom" (cell-read c)))
+      (is (= 2 @boct))
+      (is (= 2 @crun @cobs))
+      (is (nil? (c-value b)))
+      (is (nil? (:value @b))))
+
+    (do
+      (trx :second-b-reset!!!!!!!!!!!)
+      (c-reset! b "Mom")
+      (is (= "Hi Mom" (cell-read c)))
+      (is (= 3 @boct))
+      (is (= 3 @crun @cobs))
+      (is (nil? (c-value b)))
+      (is (nil? (:value @b))))
+    ))
 
