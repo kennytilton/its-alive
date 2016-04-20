@@ -90,7 +90,7 @@
                (trx nil :bingo)
                (swap! crun inc)
                (prog1
-                (str "Hi " (cell-read b))
+                (str "Hi " (c-get b))
                 (trx nil :cellread!! @b)))]
     (assert (c-rule c) "Early no rule")
     (is (nil? (c-value b)))
@@ -100,7 +100,7 @@
     (trx nil b)
     (trx nil @b)
     (is (c-valid? b))
-    (is (= "Hi " (cell-read c)))
+    (is (= "Hi " (c-get c)))
     (is (= 1 @boct))
     (is (= 1 @crun @cobs))
     (is (nil? (:value @b)))
@@ -108,7 +108,7 @@
     (do
       (trx nil :first-b-reset!!!!!!!!!!!)
       (c-reset! b "Mom")
-      (is (= "Hi Mom" (cell-read c)))
+      (is (= "Hi Mom" (c-get c)))
       (is (= 2 @boct))
       (is (= 2 @crun @cobs))
       (is (nil? (c-value b)))
@@ -117,7 +117,7 @@
     (do
       (trx nil :second-b-reset!!!!!!!!!!!)
       (c-reset! b "Mom")
-      (is (= "Hi Mom" (cell-read c)))
+      (is (= "Hi Mom" (c-get c)))
       (is (= 3 @boct))
       (is (= 3 @crun))
       (is (= 2 @cobs))
@@ -129,19 +129,19 @@
 (deftest t-c?n
   (let [a (c-in 42 :slot :aa)
         b (c?n [:slot :bb]
-              (/ (cell-read a) 2))
-        c (c? (+ 1 (cell-read b)))]
-    (is (= 21 (cell-read b)))
-    (is (= 22 (cell-read c)))
+              (/ (c-get a) 2))
+        c (c? (+ 1 (c-get b)))]
+    (is (= 21 (c-get b)))
+    (is (= 22 (c-get c)))
     (c-reset! b 42)
-    (is (= 42 (cell-read b)))
-    (is (= 43 (cell-read c)))))
+    (is (= 42 (c-get b)))
+    (is (= 43 (c-get c)))))
 
 (deftest t-c?once
   (let [a (c-in 42 :slot :aa)
         b (c?once [:slot :bb]
-              (/ (cell-read a) 2))]
-    (is (= 21 (cell-read b)))
+              (/ (c-get a) 2))]
+    (is (= 21 (c-get b)))
     (c-reset! a 2)
-    (is (= 2 (cell-read a)))
-    (is (= 21 (cell-read b)))))
+    (is (= 2 (c-get a)))
+    (is (= 21 (c-get b)))))

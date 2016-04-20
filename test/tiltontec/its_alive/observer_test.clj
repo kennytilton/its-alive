@@ -3,7 +3,7 @@
             [tiltontec.its-alive.utility :refer :all]
             [tiltontec.its-alive.cell-types :refer :all :as cty]
             [tiltontec.its-alive.integrity :refer [with-integrity]]
-            [tiltontec.its-alive.evaluate :refer [cell-read c-reset!]]
+            [tiltontec.its-alive.evaluate :refer [c-get c-reset!]]
             [tiltontec.its-alive.observer :refer [defobserver fn-obs]]
             [tiltontec.its-alive.cells :refer :all]
             ))
@@ -25,7 +25,7 @@
     (is (not (c-input? c)))
     (is (not (c-valid? c)))
     (is (nil? (c-model c)))
-    (is (= (cell-read c) 42))
+    (is (= (c-get c) 42))
     (is @bingo)
     ))
 
@@ -44,7 +44,7 @@
     (is (c-valid? c))
     (is (nil? (c-model c)))
     (is (= :bingo2 (c-slot c) (c-slot-name c)))
-    (is (= (cell-read c) 42))
+    (is (= (c-get c) 42))
     (is @bingo2)
     ))
 
@@ -58,15 +58,15 @@
         c (c?+ [:obs (fn-obs [slot me new old c]
                        (trx nil slot me new old)
                        (reset! cobs new))]
-               (* 10 (cell-read b)))]
+               (* 10 (c-get b)))]
     (dosync
-     (is (= (cell-read b) 2))
+     (is (= (c-get b) 2))
      (is (= @bobs 2))
-     (is (= (cell-read c) 20))
+     (is (= (c-get c) 20))
      (is (= @cobs 20))
      (c-reset! b 3)
      (is (= 3 @bobs))
-     (is (= 30 (cell-read c)))
+     (is (= 30 (c-get c)))
      (is (= 30 @cobs))
      )))
 

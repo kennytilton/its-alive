@@ -79,8 +79,8 @@
             (c-value c))))
 
 
-(defn cell-read [c]
-  ;; (trx :cell-read :entry (:slot @c))
+(defn c-get [c]
+  ;; (trx :c-get :entry (:slot @c))
   (prog1
    (with-integrity ()
      (let [prior-value (c-value c)]
@@ -90,7 +90,7 @@
         (when (and (= (c-state c) :nascent)
                    (> @+pulse+ (c-pulse-observed c)))
           (rmap-setf (:state c) :awake)
-          (c-observe c prior-value :cell-read)))))
+          (c-observe c prior-value :c-get)))))
    (when *depender*
      (record-dependency c))))
 
@@ -161,8 +161,12 @@
          md-slot-value-store)
 
 (defn c-reset! [c new-value]
-  (dosync
-   (c-value-assume c new-value nil true)))
+  (if *defer-changes*
+    (throw (Exception. "c-reset!> change to %s must be deferred by wrapping it in WITH-INTEGRITY"
+                       (c-slot c)))
+    (dosync
+     ;; (with-integrity (:change (c-slot c))
+     (c-value-assume c new-value nil true))))
 
 (defn c-value-assume [c new-value propagation-code initiate-integrity?]
   (assert (c-ref? c))

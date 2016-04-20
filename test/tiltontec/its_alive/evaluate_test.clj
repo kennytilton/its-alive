@@ -7,7 +7,7 @@
             [tiltontec.its-alive.cells :refer :all]
             [tiltontec.its-alive.integrity :refer :all]
             [tiltontec.its-alive.observer :refer :all]
-            [tiltontec.its-alive.evaluate :refer [cell-read c-reset!]]
+            [tiltontec.its-alive.evaluate :refer [c-get c-reset!]]
             ))
 
 (set! *print-level* 3)
@@ -21,7 +21,7 @@
     (is (c-valid? c))
     (is (nil? (c-model c)))
     (is (= :bingo (c-slot c) (c-slot-name c)))
-    (is (= (cell-read c) 42))
+    (is (= (c-get c) 42))
     ))
 
 (deftest t-formula
@@ -35,8 +35,8 @@
     (is (not (c-input? c)))
     (is (not (c-valid? c)))
     (is (nil? (c-model c)))
-    (trx nil :readddd (cell-read c))
-    (is (= (cell-read c) 42))
+    (trx nil :readddd (c-get c))
+    (is (= (c-get c) 42))
     ))
 
 
@@ -46,13 +46,13 @@
         cct (atom 0)
         dct (atom 0)
         c (c? (swap! cct inc)
-              (+ 40 (cell-read b)))
+              (+ 40 (c-get b)))
         d (c? (swap! dct inc)
-              (/ (cell-read c)
-                 (cell-read b)))]
-    (is (= (cell-read d) 21))
-    (is (= (cell-read c) 42))
-    (is (= (cell-read b) 2))
+              (/ (c-get c)
+                 (c-get b)))]
+    (is (= (c-get d) 21))
+    (is (= (c-get c) 42))
+    (is (= (c-get b) 2))
     (is (= 1 @dct))
     (is (= 1 @cct))
     (is (= 0 (count (c-useds b))))
@@ -75,10 +75,10 @@
   (reset! yowza 0)
   (is (= @yowza 0))
   (let [b (c-in 2 :slot :yowza)]
-    (is (= 2 (cell-read b)))
+    (is (= 2 (c-get b)))
     (is (= 2 @yowza))
     (c-reset! b 42)
-    (is (= 42 (cell-read b)))
+    (is (= 42 (c-get b)))
     (is (= 42 @yowza))))
 
 (deftest t-formula-22
@@ -89,22 +89,22 @@
         dct (atom 0)
         c (c?+ [:slot :cc]
                (swap! cct inc)
-               (+ 40 (cell-read b)))
+               (+ 40 (c-get b)))
         d (c?+ [:slot :dd]
                (swap! dct inc)
-               (/ (cell-read c)
-                  (cell-read b)))]
+               (/ (c-get c)
+                  (c-get b)))]
     (dosync
-     (is (= (cell-read d) 21))
-     (is (= (cell-read c) 42))
-     (is (= (cell-read b) 2))
+     (is (= (c-get d) 21))
+     (is (= (c-get c) 42))
+     (is (= (c-get b) 2))
      (is (= 1 @dct))
      (is (= 1 @cct)))
     
     (c-reset! b 3)
-    (is (= (cell-read d) 43/3))
-    (is (= (cell-read c) 43))
-    (is (= (cell-read b) 3))
+    (is (= (c-get d) 43/3))
+    (is (= (c-get c) 43))
+    (is (= (c-get b) 3))
     (is (= 2 @dct))
     (is (= 2 @cct))
     ))
@@ -153,7 +153,7 @@
         logrun #(logit run %)
 
         cr (fn [c]
-             (cell-read c))
+             (c-get c))
 
         podobs (fn [slot me new old c]
                  (swap! obs assoc slot
@@ -281,22 +281,22 @@
         cct (atom 0)
         c (c?+ [:slot :cc]
                (swap! cct inc)
-               (+ 40 (cell-read b)))]
-    (is (= (cell-read c) 42))
-    (is (= (cell-read b) 2))
+               (+ 40 (c-get b)))]
+    (is (= (c-get c) 42))
+    (is (= (c-get b) 2))
     (is (= 1 @ob))
     (is (= 1 @cct))
 
 
     (c-reset! b 4)
-    (is (= (cell-read c) 42))
-    (is (= (cell-read b) 4))
+    (is (= (c-get c) 42))
+    (is (= (c-get b) 4))
     (is (= 1 @ob))
     (is (= 1 @cct))
 
     (c-reset! b 5)
-    (is (= (cell-read c) 45))
-    (is (= (cell-read b) 5))
+    (is (= (c-get c) 45))
+    (is (= (c-get b) 5))
     (is (= 2 @ob))
     (is (= 2 @cct))))
     

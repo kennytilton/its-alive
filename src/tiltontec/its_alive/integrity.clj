@@ -16,8 +16,8 @@
   ([] (data-pulse-next []))
   ([pulse-info]
    (unless *one-pulse?*
-           #_(when *dp-log*
-               (trx nil "dp-next> " (inc @+pulse+) pulse-info))
+           (when *dp-log*
+               (trx "dp-next> " (inc @+pulse+) pulse-info))
            (alter +pulse+ inc)))) ;; hhack try as commute
 
 #_
@@ -168,7 +168,7 @@
                      *defer-changes* false]
              (when (or (zero? @+pulse+)
                        (= opcode :change))
-               (data-pulse-next))
+               (data-pulse-next :cwi))
              (prog1
               (action opcode defer-info)
               (finish-business)
