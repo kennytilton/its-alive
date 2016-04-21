@@ -7,9 +7,6 @@
 
 (set! *print-level* 3)
 
-;; (isa? ia-types ::tiltontec.its-alive.cell-types/c-formula
-;;       ::tiltontec.its-alive.cell-types/cell)
-
 (defn make-cell [& kvs]
   (let [options (apply hash-map kvs)]
     (ref
@@ -49,9 +46,10 @@
               options)
        {:type ::tiltontec.its-alive.cell-types/c-formula}))))
 
-
-
-;___________________ constructors _______________________________
+;;___________________ constructors _______________________________
+;; I seem to have created a zillion of these, but I normally
+;; use just c-in, c?, and c?n (which starts out as c? and becomes c-in).
+;; 
 
 (defmacro c-fn-var [[c] & body]
   `(fn [~c]

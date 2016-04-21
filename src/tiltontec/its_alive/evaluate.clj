@@ -78,21 +78,25 @@
             (c-pulse-update c :valid-uninfluenced)
             (c-value c))))
 
-
 (defn c-get [c]
   ;; (trx :c-get :entry (:slot @c))
-  (prog1
-   (with-integrity ()
-     (let [prior-value (c-value c)]
-       (prog1
-        (ensure-value-is-current c :c-read nil)
-        ;; this is new here, intended to awaken standalone cells JIT
-        (when (and (= (c-state c) :nascent)
-                   (> @+pulse+ (c-pulse-observed c)))
-          (rmap-setf (:state c) :awake)
-          (c-observe c prior-value :c-get)))))
-   (when *depender*
-     (record-dependency c))))
+  (cond
+    ;; check if optimized away (or perhaps initialized as constant)
+    (false? (c-ref? c)) @c
+    ;; -------------------------
+    :else
+    (prog1
+     (with-integrity ()
+       (let [prior-value (c-value c)]
+         (prog1
+          (ensure-value-is-current c :c-read nil)
+          ;; this is new here, intended to awaken standalone cells JIT
+          (when (and (= (c-state c) :nascent)
+                     (> @+pulse+ (c-pulse-observed c)))
+            (rmap-setf (:state c) :awake)
+            (c-observe c prior-value :c-get)))))
+     (when *depender*
+       (record-dependency c)))))
 
 (declare calculate-and-link
          c-value-assume)
@@ -165,8 +169,8 @@
     (throw (Exception. "c-reset!> change to %s must be deferred by wrapping it in WITH-INTEGRITY"
                        (c-slot c)))
     (dosync
-     ;; (with-integrity (:change (c-slot c))
-     (c-value-assume c new-value nil true))))
+     (with-integrity (:change (c-slot c))
+       (c-value-assume c new-value nil true)))))
 
 (defn c-value-assume [c new-value propagation-code initiate-integrity?]
   (assert (c-ref? c))
@@ -198,7 +202,6 @@
                     ;; we now can look to see if we can be optimized away
                     (trx nil :sth-happened-to (c-slot c) (c-value c) new-value)
                     (let [callers (c-callers c)] ;; get a copy before we might optimize away
-                      (trx nil :sigh (type @c) (c-optimize c))
                       (when-let [optimize (and (c-formula? c)
                                                (c-optimize c))]
                         (trx nil :wtf optimize)
@@ -206,15 +209,16 @@
                           :when-value-t (when (c-value c)
                                           (trx nil :when-value-t (c-slot c))
                                           (unlink-from-used c :when-value-t))
-                          true (optimize-away?! c))) ;; so coming propagation has it visible
-                      
+                          true (optimize-away?! c prior-value)))
+
                       ;; --- data flow propagation -----------
-                      (unless (= propagation-code :no-propagate)
-                              (trx nil :prop-by (c-slot c) :to
+                      (unless (or (= propagation-code :no-propagate)
+                                  (c-optimized-away? c))
+                              (trx :prop-by (c-slot c) :to
                                    (when-let [c1 (first callers)]
                                      (c-slot c1)))
                               (let [pfn #(propagate c prior-value callers)]
-                                (if initiate-integrity?
+                                (if false ;; initiate-integrity?
                                   (with-integrity (:change :c-reset!) (pfn))
                                   (pfn)))))))))))
 
@@ -238,16 +242,19 @@
 ;; optimizing away cells who turn out not to depend on anyone 
 ;; saves a lot of work at runtime.
 
-(defn optimize-away?! [c]
+
+(defn optimize-away?! [c prior-value]
   (when (and (c-formula? c)
-             (nil? (c-useds c))
+             (empty? (c-useds c))
              (c-optimize c)
              (not (c-optimized-away? c)) ;; c-streams (FNYI) may come this way repeatedly even if optimized away
              (c-valid? c) ;; /// when would this not be the case? and who cares?
              (not (c-synaptic? c)) ;; no slot to cache invariant result, so they have to stay around)
              (not (c-input? c)) ;; yes, dependent cells can be inputp
              )
-    (rmap-setf (:state c) :optimized-away)
+    (rmap-setf (:state c) :optimized-away) ;; leaving this for now, but we toss
+                                        ; the cell below. hhack
+    (c-observe c prior-value :opti-away)
     (when-let [me (c-model c)]
       (rmap-setf (:cells me) (dissoc (:cells @me) (c-slot c)))
       (md-cell-flush c))
@@ -257,8 +264,15 @@
       (alter caller assoc :useds (remove #{c} (c-useds caller)))
       (caller-drop c caller)
       ;;; (trc "nested opti" c caller)
-      (optimize-away?! caller) ;; rare but it happens when rule says (or .cache ...)
-      )))
+      ;;(optimize-away?! caller) ;; rare but it happens when rule says (or .cache ...)
+      (ensure-value-is-current caller :opti-used c)) ;; this will get round to optimizing
+                                        ; them if necessary, and if not they do need
+                                        ; to have one last notification if this was
+                                        ; a rare mid-life optimization
+
+    (trx :opti-nailing-c!!!!!!! (c-slot c))
+    (ref-set c (c-value c))
+    ))
 
 
 ;----------------- change detection ---------------------------------

@@ -1,4 +1,3 @@
-
 (ns tiltontec.its-alive.evaluate-test
   (:require [clojure.test :refer :all]
             [tiltontec.its-alive.utility :refer :all]
@@ -68,8 +67,6 @@
 (defobserver :yowza [nil][]
   (trx nil :yowza!!!!!!!!!!! slot new-value old-value)
   (reset! yowza new-value))
-
-  
 
 (deftest t-in-reset
   (reset! yowza 0)
@@ -300,3 +297,14 @@
     (is (= 2 @ob))
     (is (= 2 @cct))))
     
+(deftest opti-away
+  (let [aa (c? 42)]
+    (is (= 42 (c-get aa)))
+    (is (c-optimized-away? aa))
+    (trx :stte (c-state aa)(c-optimize aa)
+         (c-useds aa)(empty? (c-useds aa)))
+    (is (= 42 @aa))))
+
+#_
+(let [kk (c? 42)]
+  (= 42 (c-get kk)))

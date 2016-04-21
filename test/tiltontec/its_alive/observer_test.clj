@@ -26,6 +26,7 @@
     (is (not (c-valid? c)))
     (is (nil? (c-model c)))
     (is (= (c-get c) 42))
+    (is (= 42 @c)) ;; ie, optimized-away
     (is @bingo)
     ))
 

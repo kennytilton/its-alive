@@ -59,8 +59,19 @@
 
 (def-rmap-slots c-
   slot state input? rule pulse pulse-last-changed pulse-observed
-  useds users callers optimize value ephemeral? optimized-away?
+  useds users callers optimize ephemeral?
   lazy synaptic?)
+
+(defn c-value [c]
+  (assert (any-ref? c))
+  (cond
+    (c-ref? c) (:value @c)
+    :else @c))
+
+(defn c-optimized-away? [c]
+  (cond
+    (c-ref? c)(= :optimized-away (:state @c))
+    :else true))
 
 (defn c-model [rc]
   (:me @rc))

@@ -52,15 +52,11 @@
 
       (c-reset! act :leave)
       (is (= 4 @+pulse+))
-      ;; (is (= (c-get loc) :away))
-      ;; (is (= 2 @+pulse+))
-      ;; (is (= (c-get alarm) :on))
-      ;; (is (= 2 @+pulse+))
       )))
 
 ;; -----------------------------------------------------------------
 
-#_
+
 (deftest obs-setf-bad-caught
   (cells-init)
 
@@ -89,13 +85,14 @@
                          (str "alarm-speak sees act " (c-get act)))]
     (is (= (c-get alarm) :undefined))
     (is (= 1 @+pulse+))
-4    (is (= (c-get loc) :missing))
+    (is (= (c-get loc) :missing))
     (is (= 1 @+pulse+))
-
-    (c-reset! act :leave)
-    (is (= (c-get loc) :away))
-    (is (= (c-get alarm) :on))
-    (is (= @+pulse+ 3))))
+    
+    (is (thrown-with-msg?
+       Exception
+       #"c-reset!> change"
+       (c-reset! act :leave)))
+    ))
 
 ;; --------------------------------------------------------
 
@@ -108,12 +105,15 @@
 
 (deftest see-into-fn 
   (let [sia (c-in 0)
-        sic (c-in 42)
-        fsia  #(c-get sia)
+        rsic (atom false)
+        sic (c? (reset! rsic true)
+                (+ 42 (c-get sia)))
+        fsia #(c-get sia)
         sib (c? (or (+ 1 (fsia))
                     (c-get sic)))]
     (is (= (c-get sib) 1))
     (is (= (:useds @sib) #{sia}))
+    (is (not @rsic))
     (c-reset! sia 1)
     (is (= 2 (:value @sib)))
     (is (= (c-get sib) 2))))
