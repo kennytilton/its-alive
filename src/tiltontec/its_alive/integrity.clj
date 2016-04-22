@@ -11,17 +11,13 @@
 
 (def ^:dynamic *dp-log* false)
 
-
 (defn data-pulse-next
-  ([] (data-pulse-next []))
+  ([] (data-pulse-next :anon))
   ([pulse-info]
    (unless *one-pulse?*
            (when *dp-log*
                (trx "dp-next> " (inc @+pulse+) pulse-info))
            (alter +pulse+ inc)))) ;; hhack try as commute
-
-#_
-(dosync (data-pulse-next))
 
 (defn c-current? [c]
   (= (c-pulse c) @+pulse+))
@@ -115,7 +111,8 @@
               
         :deferred-state-change
         (when-let [[defer-info task-fn] (fifo-pop (ufb-queue :change))]
-          (data-pulse-next)
+          (trx :defstate defer-info)
+          (data-pulse-next :def-state-chg)
           (task-fn :change defer-info)
           (recur :tell-dependents))))))
 
@@ -142,38 +139,39 @@
     (assert (cl-find opcode +ufb-opcodes+)
             (format "Invalid opcode for with-integrity: %s. Allowed values: %s"
                     opcode +ufb-opcodes+)))
-  ;; (println :cwi opcode *within-integrity*)
-  (un-stopped
-   (dosync
-    (cond
-     (c-stopped) (println :cwi-sees-stop!!!!!!!!!!!)
-     
-     *within-integrity*
-     (if opcode
-       (prog1
-        :deferred-to-ufb-1
-        ;; SETF is supposed to return the value being installed
-        ;; in the place, but if the SETF is deferred we return
-        ;; something that will help someone who tries to use
-        ;; the setf'ed value figure out what is going on:
-        (ufb-add opcode [defer-info action]))
+  (wtrx (0 1000 "cwi-begin" opcode *within-integrity*)
+        (println :cwi opcode *within-integrity*)
+        (un-stopped
+         (dosync
+          (cond
+            (c-stopped) (println :cwi-sees-stop!!!!!!!!!!!)
+            
+            *within-integrity*
+            (if opcode
+              (prog1
+               :deferred-to-ufb-1
+               ;; SETF is supposed to return the value being installed
+               ;; in the place, but if the SETF is deferred we return
+               ;; something that will help someone who tries to use
+               ;; the setf'ed value figure out what is going on:
+               (ufb-add opcode [defer-info action]))
 
-       ;; thus by not supplying an opcode one can get something
-       ;; executed immediately, potentially breaking data integrity
-       ;; but signifying by having coded the with-integrity macro
-       ;; that one is aware of this. If you have read this comment.
-       (action opcode defer-info))
+              ;; thus by not supplying an opcode one can get something
+              ;; executed immediately, potentially breaking data integrity
+              ;; but signifying by having coded the with-integrity macro
+              ;; that one is aware of this. If you have read this comment.
+              (action opcode defer-info))
 
-     :else (binding [*within-integrity* true
-                     *defer-changes* false]
-             (when (or (zero? @+pulse+)
-                       (= opcode :change))
-               (data-pulse-next :cwi))
-             (prog1
-              (action opcode defer-info)
-              (finish-business)
-              (ufb-assert-q-empty :tell-dependents)
-              (ufb-assert-q-empty :change)))))))
+            :else (binding [*within-integrity* true
+                            *defer-changes* false]
+                    (when (or (zero? @+pulse+)
+                              (= opcode :change))
+                      (data-pulse-next :cwi))
+                    (prog1
+                     (action opcode defer-info)
+                     (finish-business)
+                     (ufb-assert-q-empty :tell-dependents)
+                     (ufb-assert-q-empty :change))))))))
 
 (defn ephemeral-reset [rc]
   (trx nil :eph-reset?????? (:slot @rc))

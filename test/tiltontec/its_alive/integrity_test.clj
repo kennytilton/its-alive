@@ -15,6 +15,7 @@
 (defn obsdbg []
   (fn-obs (trx :obsdbg slot new old (type-of c))))
 
+
 (deftest obs-setf
   (cells-init)
   (is (zero? @+pulse+))
@@ -25,11 +26,11 @@
                                  
                                  (when-not (= new :missing)
                                    (assert (= @+pulse+ 2))
-                                   (with-integrity (:change :loc)
-                                     (c-reset! alarm (case new
-                                                       :home :off
-                                                       :away :on
-                                                       (err format "unexpected loc %s" new))))))]
+                                   (c-reset-next! alarm
+                                                  (case new
+                                                    :home :off
+                                                    :away :on
+                                                    (err format "unexpected loc %s" new)))))]
                    (case (c-get act)
                      :leave :away
                      :return :home
@@ -51,7 +52,7 @@
       (is (= 1 @+pulse+))
 
       (c-reset! act :leave)
-      (is (= 4 @+pulse+))
+      (is (= 3 @+pulse+))
       )))
 
 ;; -----------------------------------------------------------------
@@ -63,8 +64,12 @@
   (let [alarm (c-in :undefined :obs (obsdbg))
         act (c-in nil :obs (obsdbg))
         loc (c?+ [:obs (fn-obs (trx :loc-obs-runs!!!!)
+                                (is (thrown-with-msg?
+                                     Exception
+                                     #"c-reset!> change"
+                                     (c-reset! act :leave)))
                                (when-not (= new :missing)
-                                 (c-reset! alarm (case new
+                                 (c-reset-next! alarm (case new
                                                    :home :off
                                                    :away :on
                                                    (err format "unexpected loc %s" new)))))]
@@ -88,20 +93,10 @@
     (is (= (c-get loc) :missing))
     (is (= 1 @+pulse+))
     
-    (is (thrown-with-msg?
-       Exception
-       #"c-reset!> change"
-       (c-reset! act :leave)))
+   
     ))
 
 ;; --------------------------------------------------------
-
-(def sia (c-in 0))
-
-(defn fsia []
-  (c-get sia))
-
-(fsia)
 
 (deftest see-into-fn 
   (let [sia (c-in 0)

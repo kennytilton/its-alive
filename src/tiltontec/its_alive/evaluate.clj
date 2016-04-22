@@ -114,7 +114,7 @@
                    ;; this check for optimized-away? arose because a rule using without-c-dependency
                    ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
                    ;; re-exit will be of an optimized away cell, which we need not sv-assume on...
-                   (c-value-assume c raw-value nil false))))))
+                   (c-value-assume c raw-value nil))))))
 
 (declare unlink-from-used)
 
@@ -165,16 +165,43 @@
          md-slot-value-store)
 
 (defn c-reset! [c new-value]
-  (if *defer-changes*
+  (cond
+    *defer-changes*
     (throw (Exception. "c-reset!> change to %s must be deferred by wrapping it in WITH-INTEGRITY"
                        (c-slot c)))
+    ;-----------------------------------
+    (some #{(c-lazy c)} [:once-asked :always true])
+    (c-value-assume c new-value nil)
+    ;-------------------------------------------
+    :else
     (dosync
      (with-integrity (:change (c-slot c))
-       (c-value-assume c new-value nil true)))))
+       (c-value-assume c new-value nil)))))
 
-(defn c-value-assume [c new-value propagation-code initiate-integrity?]
+(defmacro c-reset-next! [f-c f-new-value]
+  `(cond
+     (not *within-integrity*)
+     (throw (Exception. "c-reset-next!> deferred change to %s not under WITH-INTEGRITY supervision."
+                        (c-slot ~f-c)))
+     ;---------------------------------------------
+     :else
+     (ufb-add :change
+              [:c-reset-next!
+               (fn [~'opcode ~'defer-info]
+                 (let [c# ~f-c
+                       new-value# ~f-new-value]
+                   (cond
+                     ;;-----------------------------------
+                     (some #{(c-lazy c#)} [:once-asked :always true])
+                     (c-value-assume c# new-value# nil)
+                     ;;-------------------------------------------
+                     :else
+                     (dosync
+                      (c-value-assume c# new-value# nil)))))])))
+
+(defn c-value-assume [c new-value propagation-code]
   (assert (c-ref? c))
-  (do ;; wtrx (0 1000 :cv-ass (:slot @c) new-value)
+  (wtrx (0 1000 :cv-ass (:slot @c) new-value)
         (prog1 new-value ;; sans doubt
                (without-c-dependency
                 (let [prior-value (c-value c)
@@ -217,10 +244,7 @@
                               (trx :prop-by (c-slot c) :to
                                    (when-let [c1 (first callers)]
                                      (c-slot c1)))
-                              (let [pfn #(propagate c prior-value callers)]
-                                (if false ;; initiate-integrity?
-                                  (with-integrity (:change :c-reset!) (pfn))
-                                  (pfn)))))))))))
+                              (propagate c prior-value callers)))))))))
 
 ;; --- unlinking ----------------------------------------------
 (defn unlink-from-used [c why]
@@ -344,7 +368,7 @@
        (trx nil :obs-chkpulse!!!!!!!! @+pulse+ (c-pulse-observed c))
        (when (or (> @+pulse+ (c-pulse-observed c))
                  (some #{(c-lazy c)}
-                       '(:once-asked :always true))) ;; messy: these can get setfed/propagated twice in one pulse+
+                       [:once-asked :always true])) ;; messy: these can get setfed/propagated twice in one pulse+
          (c-observe c prior-value :propagate))
        
        ;;
