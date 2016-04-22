@@ -44,15 +44,6 @@
 
 ;; --- error handling -----------------
 
-(ns-unmap *ns* 'c-model)
-
-(defn error
-  ([msg] (throw (Exception. msg)))
-  ([m1 & mr] (error
-              (if (fn? m1)
-                   (apply m1 mr)
-                   ($/join " " (cons m1 mr))))))
-
 (do
   (defmulti err (fn [a1 & args] (fn? a1)))
 
@@ -64,6 +55,8 @@
 
 (defn any-ref? [x]
   (instance? clojure.lang.Ref x))
+
+;; ---- debug print statement hacks ---------------------
 
 (def ^:dynamic *trx?* true)
 
