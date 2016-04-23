@@ -1,5 +1,7 @@
 # It's Alive!
-Welcome to *It's Alive!*, a model-building paragdigm for Clojure and Common Lisp computer programming in which we declaratively specify models which run by themselves (i) acting on the world via APIS when (ii) stimulated by input piped into the model from an event loop, socket input, or database notification. 
+Welcome to *It's Alive!*, a library offering a model-building paragdigm for Clojure and Common Lisp computer programming, a paradigm that has been applied successfully to several real-world applications, including enterprise Web applications, desktop applications, and distributed computing. 
+
+In the modelling paradigm we declaratively specify models which run by themselves (i) acting on the world via APIs when (ii) first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling eg. an event loop, socket input, AJAX requests, or database notification. 
 
 Two good examples have been:
 
@@ -17,4 +19,6 @@ If you want to play at home, code that follows will be found in
 ```
 its-alive/test/tiltontec/its-alive/01_hellow_world.clj
 ```
-If you are new to Clojure I recommend [Brave Clojure](http://www.braveclojure.com/). It covers everything from the tooling to gtting started with the Emacs editor.
+If you are new to Clojure I recommend [Brave Clojure](http://www.braveclojure.com/). It covers everything from the tooling to getting started with the Emacs editor.
+
+[to be continued]
