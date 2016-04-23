@@ -3,7 +3,6 @@
   (:require [clojure.test :refer :all]
             [tiltontec.its-alive.utility :refer :all] 
             [tiltontec.its-alive.cell-types :refer :all :as cty]
-            [tiltontec.its-alive.globals :refer :all]
             [tiltontec.its-alive.observer :refer :all]
             [tiltontec.its-alive.evaluate :refer :all]
             [tiltontec.its-alive.cells :refer :all]
@@ -19,7 +18,7 @@
 (deftest obs-setf
   (cells-init)
   (is (zero? @+pulse+))
-  (binding [*dp-log* true]
+  (do ;;binding [*dp-log* true]
     (let [alarm (c-in :undefined :obs (obsdbg))
           act (c-in nil :obs (obsdbg))
           loc (c?+ [:obs (fn-obs (trx :loc-obs-runs!!!!)

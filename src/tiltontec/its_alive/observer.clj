@@ -1,6 +1,5 @@
 (ns tiltontec.its-alive.observer
   (:use [tiltontec.its-alive.utility :refer :all]
-        [tiltontec.its-alive.globals :refer :all]
         [tiltontec.its-alive.cell-types :refer :all]))
 
 (defmulti observe (fn [slot-name me new-val old-val c]

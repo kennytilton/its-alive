@@ -2,7 +2,6 @@
   (:require
       [clojure.set :refer [difference]]
       [tiltontec.its-alive.utility :refer :all]
-      [tiltontec.its-alive.globals :refer :all]
       [tiltontec.its-alive.cell-types :refer :all]
       [tiltontec.its-alive.observer :refer :all]
       [tiltontec.its-alive.integrity :refer :all]))
@@ -201,7 +200,7 @@
 
 (defn c-value-assume [c new-value propagation-code]
   (assert (c-ref? c))
-  (wtrx (0 1000 :cv-ass (:slot @c) new-value)
+  (do ;; wtrx (0 1000 :cv-ass (:slot @c) new-value)
         (prog1 new-value ;; sans doubt
                (without-c-dependency
                 (let [prior-value (c-value c)
@@ -241,7 +240,7 @@
                       ;; --- data flow propagation -----------
                       (unless (or (= propagation-code :no-propagate)
                                   (c-optimized-away? c))
-                              (trx :prop-by (c-slot c) :to
+                              (trx nil :prop-by (c-slot c) :to
                                    (when-let [c1 (first callers)]
                                      (c-slot c1)))
                               (propagate c prior-value callers)))))))))
@@ -294,7 +293,7 @@
                                         ; to have one last notification if this was
                                         ; a rare mid-life optimization
 
-    (trx :opti-nailing-c!!!!!!! (c-slot c))
+    (trx nil :opti-nailing-c!!!!!!! (c-slot c))
     (ref-set c (c-value c))
     ))
 

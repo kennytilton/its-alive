@@ -1,6 +1,5 @@
 (ns tiltontec.its-alive.cells
   (:require [tiltontec.its-alive.utility :refer :all]
-            [tiltontec.its-alive.globals :refer :all]
             [tiltontec.its-alive.cell-types :refer :all as cty]
             [tiltontec.its-alive.observer :refer :all]
             [tiltontec.its-alive.integrity :refer :all]))

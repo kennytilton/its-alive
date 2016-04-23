@@ -1,7 +1,6 @@
 (ns tiltontec.its-alive.evaluate-test
   (:require [clojure.test :refer :all]
             [tiltontec.its-alive.utility :refer :all]
-            [tiltontec.its-alive.globals :refer :all]
             [tiltontec.its-alive.cell-types :refer :all :as cty]
             [tiltontec.its-alive.cells :refer :all]
             [tiltontec.its-alive.integrity :refer :all]
