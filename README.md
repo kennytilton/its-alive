@@ -1,7 +1,9 @@
 # It's Alive!
-Welcome to *It's Alive!*, a library offering a model-building paragdigm for Clojure and Common Lisp computer programming, a paradigm that has been applied successfully to several real-world applications, including enterprise Web applications, desktop applications, and distributed computing. 
+Welcome to *It's Alive!*, a library offering a model building paragdigm for Clojure and Common Lisp computer programming. It takes a while to grasp that one can program this way, but Cells has been applied successfully to several real-world applications, including enterprise Web applications (check out all-Cells-all-the-time [Tilton's Algebra](http://tiltonsalgebra.com)), desktop applications, and distributed computing. 
 
-In the modelling paradigm we declaratively specify models which run by themselves (i) acting on the world via APIs when (ii) first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling eg. an event loop, socket input, AJAX requests, or database notification. 
+In the modelling paradigm we declaratively specify models which run by themselves
+* acting on the world via APIs
+* when first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling, eg., an event loop, socket input, AJAX requests, or database notification. 
 
 Two good examples have been:
 
@@ -81,34 +83,32 @@ Here we:
 * start with a nil *action* we then bash in place.
 Note that we can now inspect that *action* atom immediately after *c-reset!* and before any c-gets, meaning the propagation from visitor action to our test atom action happened by itself as part of the c-reset! handling. ie, It happened eagerly.
 
-[to be continued]
-# (GitHub-Flavored) Markdown Editor
+And now another baby step, in which we introduce formulaic or "ruled" cells:
+``` clojure
+(deftest hw-04
+  (let [r-action (c-in nil
+                       :slot :r-action
+                       :obs gobs)
+        r-loc (make-c-formula
+               :slot :r-loc
+               :obs gobs
+               :rule (fn [c]
+                       (case (c-get r-action)
+                         :leave :away
+                         :return :at-home
+                         :missing)))]
 
-Basic useful feature list:
+    (is (= :missing (c-get r-loc)))
 
- * Ctrl+S / Cmd+S to save the file
- * Ctrl+Shift+S / Cmd+Shift+S to choose to save as Markdown or HTML
- * Drag and drop a file into here to load it
- * File contents are saved in the URL so you can share files
-
-
-I'm no good at writing sample / filler text, so go write something yourself.
-
-Look, a list!
-
- * foo
- * bar
- * baz
-
-And here's some code! :+1:
-
-```javascript
-$(function(){
-  $('div').html('I am a div.');
-});
+    (c-reset! r-action :leave)
+    (is (= :away (c-get r-loc)))))
 ```
+We actually simplify here and just work with standalone cells to minimize the noise (and because we are not really ready yet for true model-building). What we do see is:
+* we are using the :slot (short for slot-name) key to give our cells names; and
+* our first *make-c-formula* that will keep our resident's location in synch with their actions.
 
-This is [on GitHub](https://github.com/jbt/markdown-editor) so let me know if I've b0rked it somewhere.
+
+[to be continued]
 
 
 Props to Mr. Doob and his [code editor](http://mrdoob.com/projects/code-editor/), from which
