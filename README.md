@@ -1,5 +1,16 @@
 # It's Alive!
-A Clojure dataflow library for building application models that run by themselves. It's alive!(tm) is starting out as a literal translation of my Common Lisp Cells library, where you will find the closest thing I have done to documentation: https://github.com/kennytilton/cells/wiki
+Welcome to *It's Alive!*, a model-building paragdigm of computer programming in which we declaratively specify models which then run by themselves. Two good examples have been:
+
+* a Web site reshaped dynamically by the working model when stimulated with AJAX inputs from the client; and
+* a virtual RoboCup team player model stimulated by sensory input provided by the game server over UDP.
+
+For a much longer introduction to *IA!*, see [my Cells Manifesto write-up](http://smuglispweeny.blogspot.com/2008/02/cells-manifesto.html) detailing *IA!'s* progenitor, my Common Lisp [Cells project](https://github.com/kennytilton/cells).
+
+Me, I like examples.
+
+[to be continued]
+
+# Pardon Our Appearance During Doc Authoring
 
 Once I have this Clojure version working I will do a proper tutorial demonstrating all the many features.
 
