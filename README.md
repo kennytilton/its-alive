@@ -1,29 +1,20 @@
 # It's Alive!
-Welcome to *It's Alive!*, a model-building paragdigm of computer programming in which we declaratively specify models which then run by themselves. Two good examples have been:
+Welcome to *It's Alive!*, a model-building paragdigm for Clojure and Common Lisp computer programming in which we declaratively specify models which run by themselves (i) acting on the world via APIS when (ii) stimulated by input piped into the model from an event loop, socket input, or database notification. 
 
-* a Web site reshaped dynamically by the working model when stimulated with AJAX inputs from the client; and
-* a virtual RoboCup team player model stimulated by sensory input provided by the game server over UDP.
+Two good examples have been:
+
+* a Web application reshaped dynamically to accomodate the user's activity (AJAX in and HTML, JSON, or JS out); and
+* a virtual RoboCup team player (i) stimulated by sensory input from the game server over a UDP socket (ii) sending back run, turn, and kick commands.
 
 For a much longer introduction to *IA!*, see [my Cells Manifesto write-up](http://smuglispweeny.blogspot.com/2008/02/cells-manifesto.html) detailing *IA!'s* progenitor, my Common Lisp [Cells project](https://github.com/kennytilton/cells).
 
-Me, I like examples.
+Me, I like examples. Let's take a quick look at an interesting-enough example during which I am afraid much will seem like magic (unless of course you are familiar with the seeming dozens of libraries doing the same thing -- espicially [Hoplon/Javelin](https://github.com/hoplon/javelin)).
 
-[to be continued]
+I myself find magic examples unhelpful, but I will try to make this quick and once we turn technical things will get dense in a hurry. Let us give you the big picture view first.
 
-# Pardon Our Appearance During Doc Authoring
-
-Once I have this Clojure version working I will do a proper tutorial demonstrating all the many features.
-
-[Now I have the Clojure version working.
-
-``` lisp
-(defun ufb-queue-ensure (opcode)
-  (or (ufb-queue opcode)
-    (cdr (car (push (cons opcode (make-fifo-queue))
-                *unfinished-business*)))))
+### hello, world
+If you want to play at home, code that follows will be found in
 ```
-A second exercise will be incorporating (welcome!) complaints from the peanut gallery about my non-idiomatic Clojure (I will be writing Common Lisp in Clojure at first).
-
-Then we have some fun: parallel state propagation. I think we can do pretty well on data integrity commuting the pulse ref and perhaps even dependency state between cells. Just need a good use case -- perhaps a physics engine?
-
-More soon.
+its-alive/test/tiltontec/its-alive/01_hellow_world.clj
+```
+If you are new to Clojure I recommend [Brave Clojure](http://www.braveclojure.com/). It covers everything from the tooling to gtting started with the Emacs editor.
