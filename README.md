@@ -160,4 +160,42 @@ The astute observer will spot a serious problem: the resident responded to a kno
 * the `r-response` rule got kicked off;
 * the `r-response` rule looked at the visitor `:action` and there was the `:knock-knock`.
 
-We need a way to express events, things that happen at a point in time and then are over with. And it is not that they go away. They happen more than exist, so there is no need to stop existing. They are fleeting, evanescent, ephemeral:
+We need a way to express events, things that happen at a point in time and then are over with. And it is not that they go away. They happen more than exist, so there is no need to stop existing. They are fleeting, evanescent, ephemeral. Let's add that specification to all but the only long-lived state in this example, the resident location:
+``` clojure
+(deftest hello-world
+  (println :--go------------------)
+  (let [obs-action (fn [slot me new old c]
+                     (println slot new old))
+        v {:name "World"
+           :action (c-in nil
+                         :slot :v-action
+                         :ephemeral? true
+                         :obs obs-action)}
+        r-action (c-in nil)
+        r-loc (c?+ [:obs (fn-obs (when new (trx :honey-im new)))]
+                   (case (c-get r-action)
+                     :leave :away
+                     :return :home
+                     :missing))
+        r-response (c?+ [:obs (fn-obs (trx :r-response new))
+                         :ephemeral? true]
+                        (when (= :home (c-get r-loc))
+                          (when-let [act (md-get :action v)]
+                            (case act
+                              :knock-knock "hello, world"))))]
+    (is (nil? (c-get r-response)))
+    (c-reset! (:action v) :knock-knock)
+    (c-reset! r-action :return)
+    (is (= :home (c-get r-loc)))
+    (c-reset! (:action v) :knock-knock)))
+```
+Success:
+```
+:honey-im: :missing
+:r-response: 
+:v-action :knock-knock nil
+:honey-im: :home
+:v-action :knock-knock nil
+:r-response: hello, world
+```
+And one last astutism: above we set the visitor action to the same value :knock-knock consecutively. Normally with Cells we do not bother propagating values that do not change the world; if I change my speed from 60mph to 60mph, no one needs to know. But again events are different: two events with the same value are not the same event, and *IA!* propagates accordingly.
