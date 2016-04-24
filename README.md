@@ -1,9 +1,7 @@
 # It's Alive!
-Welcome to *It's Alive!*, a library offering a model building paragdigm for Clojure and Common Lisp computer programming. It takes a while to grasp that one can program this way, but Cells has been applied successfully to several real-world applications, including enterprise Web applications (check out all-Cells-all-the-time [Tilton's Algebra](http://tiltonsalgebra.com)), desktop applications, and distributed computing. 
+Welcome to *It's Alive!*, a library offering a model-building paragdigm for Clojure and Common Lisp computer programming, a paradigm that has been applied successfully to several real-world applications, including enterprise Web applications, desktop applications, and distributed computing. 
 
-In the modelling paradigm we declaratively specify models which run by themselves
-* acting on the world via APIs
-* when first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling, eg., an event loop, socket input, AJAX requests, or database notification. 
+In the modelling paradigm we declaratively specify models which run by themselves (i) acting on the world via APIs when (ii) first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling eg. an event loop, socket input, AJAX requests, or database notification. 
 
 Two good examples have been:
 
@@ -24,43 +22,50 @@ its-alive/test/tiltontec/its-alive/01_hellow_world.clj
 If you are new to Clojure I recommend [Brave Clojure](http://www.braveclojure.com/). It covers everything from the tooling to getting started with the Emacs editor.
 
 ``` clojure
-
 (deftest hw-01
   (let [v ;;"visitor"
         {:name "World"
          :action (make-cell :value "knocks"
                             :input? true)}]
-
     (println (c-get (:name v))
              (c-get (:action v)))
-
     (is (=  (c-get (:name v)) "World"))
     (is (=  (c-get (:action v)) "knocks"))))
 ```
-Not much to see there in return for all that *make-cell* and _c-get_ effort, eh? Just setting the baseline. Now let's take our first win:
+Not much to see there in return for all that `make-cell` and `c-get` effort, except introducing those two functions. Your repl should show:
+```
+World knocks
+```
+Now let's chalk up our first *IA!* win:
 ```clojure
 (deftest hw-02
   (let [obs-action (atom nil)
         v ;;"visitor"
         {:name "World"
          :action (c-in "knocks"
+                       :slot :v-action
                        :obs ;; short for observer
                        (fn [slot me new old c]
                          (reset! obs-action new)
-                         (println :observing slot me new old)))}]
-    (println (c-get (:name v))) ;; no Cell, no observer: println to the rescue
+                         (println :observing slot new old)))}]
     (is (=  (c-get (:name v)) "World"))
     (is (=  (c-get (:action v)) "knocks"))
-    (is (= "knocks" @obs-action))))
+    (is (= "knocks" @obs-action)))
 ```
-We have:
-* abbreviated *make-cell/:input? true* to *c-in*; and
-* created an observer to both echo the state change details to the console and stash the new value in an atom (yes, just a Stupid Pet Trick).
-Still not much to shout about, except perhaps this: the model has sprung to life seemingly on its own (but in fact by the act of reading -- the *c-get* calls).
+The observer gives us our model a bit of life independent of the code we invoke explicitly, in this case a simple logging to the console of the call to the observer:
+```
+:observing :v-action knocks knocks
+```
+The astute observer will spot a problem: both old and new value are the same. Let's ignore for now that artifact of standalone cells (which I suspect are of little value to model building because attributes tend to be attributes of something larger (a model)).
 
-When we get serious about model-building we will be even more pro-active about bringing our models to life smoothly. For now, let's see about life after birth:
+Anyway, here we have:
+* abbreviated `make-cell/:input?` true to `c-in`;
+* created an observer to both echo the state change details to the console and stash the new value in an atom (yes, just a Stupid Pet Trick);
+* *very* importantly, the model has sprung to life seemingly on its own (but in fact by the act of our reading the slot values -- the `c-get` calls). When we get serious about model-building we will be even more pro-active about bringing our models smoothly to life (and easing them off this mortal coil); and finally
+* something new to those familiar with Cells in Common Lisp: a Cell can exist on its own.
+
+Now let's see about life after birth, introducing *change*:
 ``` clojure
-
 (deftest hw-03
   (let [action (atom nil)
         obs-action (fn [slot me new old c]
@@ -74,14 +79,21 @@ When we get serious about model-building we will be even more pro-active about b
     (is (nil? (c-get (:action v))))
     (is (nil? @action))
 
-    (c-reset! (:action v) "knock-knock")
+    (c-reset! (:action v) "knock-knock") ;; <== change!
     (is (= "knock-knock" @action))
     (is (= (c-get (:action v)) "knock-knock"))))
+```
+The console:
+```
+:observing :v-action nil nil nil
+:observing :v-action nil knock-knock nil
 ```
 Here we:
 * define the observer (a bit) separately from the cell; and
 * start with a nil *action* we then bash in place.
-Note that we can now inspect that *action* atom immediately after *c-reset!* and before any c-gets, meaning the propagation from visitor action to our test atom action happened by itself as part of the c-reset! handling. ie, It happened eagerly.
+Note that we can now inspect that *action* atom immediately after *c-reset!* and before any c-gets, meaning the propagation from visitor action to our test atom action happened by itself as part of the c-reset! handling.
+
+ie, It happened eagerly...It's Alive!
 
 And now another baby step, in which we introduce formulaic or "ruled" cells:
 ``` clojure
@@ -97,26 +109,55 @@ And now another baby step, in which we introduce formulaic or "ruled" cells:
                          :leave :away
                          :return :at-home
                          :missing)))]
-
     (is (= :missing (c-get r-loc)))
-
     (c-reset! r-action :leave)
     (is (= :away (c-get r-loc)))))
 ```
 We actually simplify here and just work with standalone cells to minimize the noise (and because we are not really ready yet for true model-building). What we do see is:
 * we are using the :slot (short for slot-name) key to give our cells names; and
-* our first *make-c-formula* that will keep our resident's location in synch with their actions.
+* our first `make-c-formula` that will keep our resident's location in synch with their actions.
 
+Now let's put it all together:
 
-[to be continued]
+``` clojure
+(deftest hello-world
+  (println :--go------------------)
+  (let [obs-action (fn [slot me new old c]
+                     (println slot new old))
+        v {:name "World"
+           :action (c-in nil :slot :v-action
+                         :obs obs-action)}
+        r-action (c-in nil)
+        r-loc (c?+ [:obs (fn-obs (when new (trx :honey-im new)))]
+                   (case (c-get r-action)
+                     :leave :away
+                     :return :home
+                     :missing))
+        r-response (c?+ [:obs (fn-obs (trx :r-resp new))]
+                        (when (= :home (c-get r-loc))
+                          (when-let [act (md-get :action v)]
+                            (case act
+                              :knock-knock "hello, world"))))]
+    (is (nil? (c-get r-response)))
+    (c-reset! (:action v) :knock-knock)
+    (c-reset! r-action :return)
+    (is (= :home (c-get r-loc)))))
+```
+...and voila!
+```
+:--go------------------
+:honey-im: :missing
+:r-resp: 
+:v-action :knock-knock nil
+:honey-im: :home
+:r-resp: hello, world
+```
+The astute observer will spot a serious problem: the resident responded to a knock that happened when they were not home. The sequence went like this:
+* the visitor `:action` was set to `:knock-knock`;
+* no `r-response` was computed because our resident was not `:home`;
+* the `r-action` was set to `return`;
+* their  `r-loc` got recomputed as `:home`;
+* the `r-response` rule got kicked off;
+* the `r-response` rule looked at the visitor `:action` and there was the `:knock-knock`.
 
-
-Props to Mr. Doob and his [code editor](http://mrdoob.com/projects/code-editor/), from which
-the inspiration to this, and some handy implementation hints, came.
-
-### Stuff used to make this:
-
- * [markdown-it](https://github.com/markdown-it/markdown-it) for Markdown parsing
- * [CodeMirror](http://codemirror.net/) for the awesome syntax-highlighted editor
- * [highlight.js](http://softwaremaniacs.org/soft/highlight/en/) for syntax highlighting in output code blocks
- * [js-deflate](https://github.com/dankogai/js-deflate) for gzipping of data to make it fit in URLs
+We need a way to express events, things that happen at a point in time and then are over with. And it is not that they go away. They happen more than exist, so there is no need to stop existing. They are fleeting, evanescent, ephemeral:
