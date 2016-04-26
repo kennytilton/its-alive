@@ -177,7 +177,7 @@ The astute observer will spot a serious problem: the resident responded to a kno
 ##### Ephemerality
 We need a way to express events -- things that happen at a point in time and then are over with. As a corrollary, they need not go away in any fashion visible to the model; they do not exist so much as happen, so there is no need to stop existing. They are fleeting, evanescent, *ephemeral*. 
 
-Let us get a good understanding of this. Cells is a magic bullet with its spreadsheet-like automatic ability to recalculate everything in the right order, but the spreadsheet metaphor fails us when we turn to handling events. Hence the `ephemerality?` option.
+Let us get a good understanding of this. Cells is a magic bullet with its spreadsheet-like automatic ability to recalculate everything in the right order, but the spreadsheet metaphor fails us when we turn to handling events. Hence the `ephemeral?` option.
 
 Let's add that specification to all but the only non-ephemeral state in this example, the resident location:
 ``` clojure
@@ -218,5 +218,62 @@ Success:
 :r-response: hello, world
 ```
 And one last astutism: above we set the visitor action to the same value :knock-knock twice consecutively. Normally with Cells we do not bother propagating values that do not change the world; if I change my speed from 60mph to 60mph, no one needs to know. But again events are different: two events with the same value are not the same event, and *IA!* propagates accordingly.
-
+#### How alarming
+Let us now get just the slightest glimpse of a real world application built with *IA!*:
+``` clojure
+(deftest hello-world-2
+  (println :--go------------------)
+  (let [obs-action (fn [slot me new old c]
+                     (when new (trx visitor-did new)))
+        v {:name "World"
+           :action (c-in nil
+                         :slot :v-action
+                         :ephemeral? true
+                         :obs obs-action)}
+        r-action (c-in nil)
+        r-loc (c?+ [:obs (fn-obs (when new (trx :honey-im new)))]
+                   (case (c-get r-action)
+                     :leave :away
+                     :return :home
+                     :missing))
+        r-response (c?+ [:obs (fn-obs (when new
+                                        (trx :r-response new)))
+                         :ephemeral? true
+                         ]
+                        (when (= :home (c-get r-loc))
+                              (when-let [act (c-get (:action v))]
+                                (case act
+                                  :knock-knock "hello, world"))))
+        alarm (c?+ [:obs (fn-obs
+                          (trx :telling-alarm-api new))]
+                   (if (= :home (c-get r-loc)) :off :on))
+        alarm-do (c?+ [:obs (fn-obs
+                            (case new
+                              :call-police (trx :auto-dialing-911)
+                              nil))]
+                     (when (= :on (c-get alarm))
+                       (when-let [action (c-get (:action v))]
+                         (case action
+                           :smashing-window :call-police
+                           nil))))]
+    (c-awaken [alarm-do r-response r-loc (:action v)])
+    (is (= :missing (:value @r-loc)))
+    (c-reset! (:action v) :knock-knock)
+    (c-reset! (:action v) :smashing-window)
+    (c-reset! r-action :return)
+    (is (= :home (c-get r-loc))) 
+    (c-reset! (:action v) :knock-knock)))
+```
+That is all a bit silly because we left out the bit where the alarm has a microphone to detect sounds or the window panes are wired to interrupt a circuit when broken and who says I do not want the alarm to be on when I am home and how did... but hopefully you get the idea:
+```
+ :honey-im: :missing
+ :telling-alarm-api: :on
+ visitor-did: :knock-knock
+ visitor-did: :smashing-window
+ :auto-dialing-911: 
+ :honey-im: :home
+ :telling-alarm-api: :off
+ visitor-did: :knock-knock
+ :r-response: hello, world
+ ```
 Next up (in a few days, after I finish a neat coding interview exercise): modelling.
