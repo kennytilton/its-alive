@@ -178,6 +178,7 @@ The astute observer will spot a serious problem: the resident responded to a kno
 * their  `r-loc` got recomputed as `:home`;
 * the `r-response` rule, seeing `r-loc` had changed, got kicked off;
 * the `r-response` rule looked at the visitor `:action` and the value `:knock-knock` was still sitting there.
+
 ##### Ephemerality
 We need a way to express events -- things that happen at a point in time and then are over with. As a corrollary, they need not go away in any fashion visible to the model; they do not exist so much as happen, so there is no need to stop existing. They are fleeting, evanescent, *ephemeral*. 
 
