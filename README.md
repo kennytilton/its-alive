@@ -100,6 +100,9 @@ ie, It happened eagerly...It's Alive!
 
 And now another baby step, in which we introduce formulaic or "ruled" cells:
 ``` clojure
+(defn gobs [slot me new old c]
+  (println :gobs> slot new old))
+  
 (deftest hw-04
   (let [r-action (c-in nil
                        :slot :r-action
@@ -123,6 +126,7 @@ We actually simplify here and just work with standalone cells to minimize the no
 * we are using the :slot (short for slot-name) key to give our cells names;
 * our first `make-c-formula` that will keep our resident's location in synch with their actions; and
 * `c-awaken` to force a nascent cell into full participation in the model, something we need to emphasize (next).
+
 ### You must remember this...
 When we get serious about modelling, our model-creation API will gracefully bring models into existence, including seeing to it that all their slots/cells are brought into the game of life with integrity, ie, consistent with the state of the model at the pulse at which they are created. That means computing the initial value of all formula cells and observing all cells and even constants provided for a slot where an observer has been specified on the slot name (something we have not looked at yet).
 
