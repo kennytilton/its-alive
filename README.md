@@ -1,10 +1,9 @@
 # It's Alive!
 Welcome to *It's Alive!*, a library offering a model-building paragdigm for Clojure and Common Lisp computer programming, a paradigm that has been applied successfully to several real-world applications, including enterprise Web applications, desktop applications, and distributed computing. 
 
-In the modelling paradigm we declaratively specify models which run by themselves (i) acting on the world via APIs when (ii) first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling eg. an event loop, socket input, AJAX requests, or database notification. 
+In the modelling paradigm we declaratively specify models which run by themselves acting on the world via APIs when first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling eg. an event loop, socket input, AJAX requests, or database notification. 
 
-Two good examples have been:
-
+Two good examples:
 * a Web application reshaped dynamically to accomodate the user's activity (AJAX in and HTML, JSON, or JS out); and
 * a virtual RoboCup team player (i) stimulated by sensory input from the game server over a UDP socket (ii) sending back run, turn, and kick commands.
 
@@ -19,6 +18,8 @@ If you want to play at home, code that follows will be found in
 ```
 its-alive/test/tiltontec/its-alive/01_hellow_world.clj
 ```
+[I'll get this up on Clojars when I get to version 0.1.0.]
+
 If you are new to Clojure I recommend [Brave Clojure](http://www.braveclojure.com/). It covers everything from the tooling to getting started with the Emacs editor.
 
 ``` clojure
@@ -52,16 +53,18 @@ Now let's chalk up our first *IA!* win:
     (is (=  (c-get (:action v)) "knocks"))
     (is (= "knocks" @obs-action)))
 ```
-The observer gives us our model a bit of life independent of the code we invoke explicitly, in this case a simple logging to the console of the call to the observer:
+The observer gives our model its first bit of life independent of the code we invoke explicitly, in this case a simple logging to the console:
 ```
 :observing :v-action knocks knocks
 ```
-The astute observer will spot a problem: both old and new value are the same. Let's ignore for now that artifact of standalone cells (which I suspect are of little value to model building because attributes tend to be attributes of something larger (a model)).
+The astute observer will spot a problem: both old and new value are the same. Let's ignore for now that artifact of standalone cells (which I suspect are of little value to model building because attributes tend to be attributes of something -- I digress).
 
-Anyway, here we have:
-* abbreviated `make-cell/:input?` true to `c-in`;
+Experience Lisp Cells users will notice a new twist: an individual Cell can specifcy its own, if you will, anonymous observer.
+
+Anyway, in this example we have:
+* abbreviated `make-cell/:input? true` to `c-in`;
 * created an observer to both echo the state change details to the console and stash the new value in an atom (yes, just a Stupid Pet Trick);
-* *very* importantly, the model has sprung to life seemingly on its own (but in fact by the act of our reading the slot values -- the `c-get` calls). When we get serious about model-building we will be even more pro-active about bringing our models smoothly to life (and easing them off this mortal coil); and finally
+* *very* importantly, the model has sprung to life seemingly on its own (but in fact by the act of our reading the slot values -- the `c-get` calls). (More below on this coming to life business.); and finally
 * something new to those familiar with Cells in Common Lisp: a Cell can exist on its own.
 
 Now let's see about life after birth, introducing *change*:
@@ -109,18 +112,30 @@ And now another baby step, in which we introduce formulaic or "ruled" cells:
                          :leave :away
                          :return :at-home
                          :missing)))]
-    (is (= :missing (c-get r-loc)))
+    (c-awaken r-loc)
+    (is (= :missing (:value @r-loc)))
+    (println :---about-to-leave------------------)
     (c-reset! r-action :leave)
+    (println :---left------------------)
     (is (= :away (c-get r-loc)))))
 ```
 We actually simplify here and just work with standalone cells to minimize the noise (and because we are not really ready yet for true model-building). What we do see is:
-* we are using the :slot (short for slot-name) key to give our cells names; and
-* our first `make-c-formula` that will keep our resident's location in synch with their actions.
+* we are using the :slot (short for slot-name) key to give our cells names;
+* our first `make-c-formula` that will keep our resident's location in synch with their actions; and
+* `c-awaken` to force a nascent cell into full participation in the model, something we need to emphasize (next).
+### You must remember this...
+When we get serious about modelling, our model-creation API will gracefully bring models into existence, including seeing to it that all their slots/cells are brought into the game of life with integrity, ie, consistent with the state of the model at the pulse at which they are created. That means computing the initial value of all formula cells and observing all cells and even constants provided for a slot where an observer has been specified on the slot name (something we have not looked at yet).
 
+Until then, or as long as we want to have a standalone cell, that cell will not be brought to life as just described until we pass it to `c-awaken` or `c-get`. If you start playing with this example adding new cells and they seem inoperative, there is a good chance you neglected to awaken the cell one way or the other.
+#### Do as I say, not as I do
+In the remaining code I am letting the testing assertions take care of awakening cells via `c-get`. I have also spent more than a few minutes tracking down bugs that were no more than failures to awaken. Do not let this happen to you (and when we get to model-building this will all be behind us).
+
+By the way, yes, we could bake `c-awaken` into `c-in`, but with the formulaic variants be careful not to `c-awaken` a cell that uses a cell not yet defined (possible with sufficient legerdemain).
+### Back to "hello, world"
 Now let's put it all together:
 
 ``` clojure
-(deftest hello-world
+(deftest hw-5
   (println :--go------------------)
   (let [obs-action (fn [slot me new old c]
                      (println slot new old))
@@ -152,15 +167,19 @@ Now let's put it all together:
 :honey-im: :home
 :r-resp: hello, world
 ```
-The astute observer will spot a serious problem: the resident responded to a knock that happened when they were not home. The sequence went like this:
+The astute observer will spot a serious problem: the resident responded to a knock that happened when they were way. How could that have happened? The sequence went like this:
 * the visitor `:action` was set to `:knock-knock`;
-* no `r-response` was computed because our resident was not `:home`;
+* no `r-response` was computed because our resident `r-loc` was not `:home`;
 * the `r-action` was set to `return`;
 * their  `r-loc` got recomputed as `:home`;
-* the `r-response` rule got kicked off;
-* the `r-response` rule looked at the visitor `:action` and there was the `:knock-knock`.
+* the `r-response` rule, seeing `r-loc` had changed, got kicked off;
+* the `r-response` rule looked at the visitor `:action` and the value `:knock-knock` was still sitting there.
+##### Ephemerality
+We need a way to express events -- things that happen at a point in time and then are over with. As a corrollary, they need not go away in any fashion visible to the model; they do not exist so much as happen, so there is no need to stop existing. They are fleeting, evanescent, *ephemeral*. 
 
-We need a way to express events, things that happen at a point in time and then are over with. And it is not that they go away. They happen more than exist, so there is no need to stop existing. They are fleeting, evanescent, ephemeral. Let's add that specification to all but the only long-lived state in this example, the resident location:
+Let us get a good understanding of this. Cells is a magic bullet with its spreadsheet-like automatic ability to recalculate everything in the right order, but the spreadsheet metaphor fails us when we turn to handling events. Hence the `ephemerality?` option.
+
+Let's add that specification to all but the only non-ephemeral state in this example, the resident location:
 ``` clojure
 (deftest hello-world
   (println :--go------------------)
@@ -198,4 +217,6 @@ Success:
 :v-action :knock-knock nil
 :r-response: hello, world
 ```
-And one last astutism: above we set the visitor action to the same value :knock-knock consecutively. Normally with Cells we do not bother propagating values that do not change the world; if I change my speed from 60mph to 60mph, no one needs to know. But again events are different: two events with the same value are not the same event, and *IA!* propagates accordingly.
+And one last astutism: above we set the visitor action to the same value :knock-knock twice consecutively. Normally with Cells we do not bother propagating values that do not change the world; if I change my speed from 60mph to 60mph, no one needs to know. But again events are different: two events with the same value are not the same event, and *IA!* propagates accordingly.
+
+Next up (in a few days, after I finish a neat coding interview exercise): modelling.
