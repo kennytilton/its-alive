@@ -1,7 +1,7 @@
 # It's Alive!
-Welcome to *It's Alive!*, a library offering a model-building paradigm for Clojure and Common Lisp computer programming, a paradigm that has been applied successfully to several real-world applications, including enterprise Web applications, desktop applications, and distributed computing. 
+Welcome to *It's Alive!*, a model-building paradigm atop Clojure or Common Lisp that has been applied successfully to several real-world applications, including enterprise Web applications, desktop applications, and distributed computing. 
 
-In the modelling paradigm we declaratively specify models which run by themselves acting on the world via APIs when first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling eg. an event loop, socket input, AJAX requests, or database notification. 
+In the modelling paradigm we declaratively specify models which run by themselves acting on the world via APIs when first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling an event loop, a socket, AJAX requests, database notifications, or whatever. 
 
 Two good examples:
 * a Web application reshaped dynamically to accomodate the user's activity (AJAX in and HTML, JSON, or JS out); and
