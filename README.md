@@ -59,7 +59,7 @@ The observer gives our model its first bit of life independent of the code we in
 ```
 The astute observer will spot a problem: both old and new value are the same. Let's ignore for now that artifact of standalone cells (which I suspect are of little value to model building because attributes tend to be attributes of something -- I digress).
 
-Experience Lisp Cells users will notice a new twist: an individual Cell can specifcy its own, if you will, anonymous observer.
+Experienced Lisp Cells users will notice a new twist: an individual Cell can specifcy its own, if you will, anonymous observer.
 
 Anyway, in this example we have:
 * abbreviated `make-cell/:input? true` to `c-in`;
