@@ -16,7 +16,7 @@ I myself find magic examples unhelpful, but I will try to make this quick and on
 ### hello, world
 If you want to play at home, code that follows will be found in
 ```
-its-alive/test/tiltontec/its-alive/01_hellow_world.clj
+its-alive/test/tiltontec/its-alive/01_hello_world.clj
 ```
 [I'll get this up on Clojars when I get to version 0.1.0.]
 
