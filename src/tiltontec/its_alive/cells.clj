@@ -52,7 +52,7 @@
 
 (defmacro c-fn-var [[c] & body]
   `(fn [~c]
-     (let [~'self (c-model ~c)
+     (let [~'me (c-model ~c)
            ~'cache (c-value ~c)]
      ~@body)))
 
@@ -176,6 +176,10 @@
          (list* :value value
                 :input? true
                 option-kvs)))
+
+#_
+(let [x (c-in 42)]
+  (awaken x))
 
 :cells-ok
 
