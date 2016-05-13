@@ -12,7 +12,7 @@
 
 (deftest test-input
   (let [c (c-in 42 :slot :bingo)]
-    (is (ia-type? @c ::cty/cell))
+    (is (ia-type? c ::cty/cell))
     (is (= (c-value-state c) :valid))
     (is (= #{} (c-callers c)))
     (is (c-input? c))
@@ -25,8 +25,8 @@
 (deftest t-formula
   (let [c (c? (+ 40 2))]
     (is (isa? ia-types ::cty/c-formula ::cty/cell))
-    (is (ia-type? @c ::cty/cell))
-    (is (ia-type? @c ::cty/c-formula))
+    (is (ia-type? c ::cty/cell))
+    (is (ia-type? c ::cty/c-formula))
     (is (= (c-value-state c) :unevaluated))
     (is (= #{} (c-callers c)))
     (is (= #{} (c-useds c)))
@@ -299,6 +299,7 @@
 (deftest opti-away
   (let [aa (c? 42)]
     (is (= 42 (c-get aa)))
+    (println :aa @aa)
     (is (c-optimized-away? aa))
     (trx :stte (c-state aa)(c-optimize aa)
          (c-useds aa)(empty? (c-useds aa)))

@@ -1,5 +1,5 @@
 
-(ns tiltontec.its-alive.cells-test
+(ns tiltontec.its-alive.hello-world
   (:require [clojure.test :refer :all]
             [tiltontec.its-alive.utility :refer :all] 
             [tiltontec.its-alive.cell-types :refer :all :as cty]

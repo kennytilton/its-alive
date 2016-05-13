@@ -23,10 +23,11 @@
   (= (c-pulse c) @+pulse+))
 
 (defn c-pulse-update [c key]
-  (assert (>= @+pulse+ (c-pulse c))
-          (format "Current DP %s not GE pulse %s of cell %s"
-                  @+pulse+ (c-pulse c) @c))
-  (alter c assoc :pulse @+pulse+))
+  (when-not (c-optimized-away? c)
+    (assert (>= @+pulse+ (c-pulse c))
+            (format "Current DP %s not GE pulse %s of cell %s"
+                    @+pulse+ (c-pulse c) @c))
+    (alter c assoc :pulse @+pulse+)))
 
 ;; --- ufb utils ----------------------------
 

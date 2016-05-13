@@ -103,18 +103,13 @@ rule to get once behavior or just when fm-traversing to find someone"
                       (derive ::c-formula ::cell)))
 
 (defn ia-type? [it typ]
-  (if (any-ref? it)
-    (ia-type? @it typ)
-    (isa? ia-types (type it) typ)))
+  (isa? ia-types (type it) typ))
 
 (defn c-formula? [c]
-  (if (any-ref? c)
-    (c-formula? @c)
-    (ia-type? c ::c-formula)))
+  (ia-type? c ::c-formula))
 
 (defn c-ref? [x]
-  (and (instance? clojure.lang.Ref x)
-       (ia-type? @x ::cell)))
+  (ia-type? x ::cell))
 
 (def-rmap-slots c-
   me slot state input? rule pulse pulse-last-changed pulse-observed
@@ -124,12 +119,14 @@ rule to get once behavior or just when fm-traversing to find someone"
 (defn c-value [c]
   (assert (any-ref? c))
   (cond
-    (c-ref? c) (:value @c)
+    (and (c-ref? c)
+         (map? @c)) (:value @c)
     :else @c))
 
 (defn c-optimized-away? [c]
   (cond
-    (c-ref? c)(= :optimized-away (:state @c))
+    (c-ref? c) (or (not (map? @c))
+                   (= :optimized-away (:state @c)))
     :else true))
 
 (defn c-model [rc]
@@ -171,7 +168,7 @@ rule to get once behavior or just when fm-traversing to find someone"
 (defn md-ref? [x]
   ;;(trx :md-ref?-sees x)
   (and (instance? clojure.lang.Ref x)
-       ;; hhack (ia-type? @x ::model)
+       ;; hhack (ia-type? x ::model)
        ))
 
 (defmulti mdead? (fn [me]

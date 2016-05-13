@@ -8,42 +8,38 @@
 
 (defn make-cell [& kvs]
   (let [options (apply hash-map kvs)]
-    (ref
-     (with-meta
-       (merge {:value unbound
-               :state :nascent
-               :pulse 0
-               :pulse-last-changed 0
-               :pulse-observed 0
-               :callers #{}
-               :lazy false ;; not a predicate (can hold, inter alia, :until-asked)
-               :ephemeral? false
-               :input? true
-              }
-              options)
-       {:type ::tiltontec.its-alive.cell-types/cell}))))
+    (ref (merge {:value unbound
+                 :state :nascent
+                 :pulse 0
+                 :pulse-last-changed 0
+                 :pulse-observed 0
+                 :callers #{}
+                 :lazy false ;; not a predicate (can hold, inter alia, :until-asked)
+                 :ephemeral? false
+                 :input? true
+                 }
+                options)
+         :meta {:type ::tiltontec.its-alive.cell-types/cell})))
 
 (defn make-c-formula [& kvs]
   (let [options (apply hash-map kvs)
         rule (:rule options)]
     (assert rule)
     (assert (fn? rule))
-    (ref
-     (with-meta
-       (merge {:value unevaluated
-               :state :nascent
-               :pulse 0
-               :pulse-last-changed 0
-               :pulse-observed 0
-               :callers #{}
-               :useds #{}
-               :lazy false
-               :ephemeral? false
-               :optimize true ;; this can also be :when-not-nil
-               :input? false ;; not redundant: can start with rule, continue as input
-              }
-              options)
-       {:type ::tiltontec.its-alive.cell-types/c-formula}))))
+    (ref (merge {:value unevaluated
+                 :state :nascent
+                 :pulse 0
+                 :pulse-last-changed 0
+                 :pulse-observed 0
+                 :callers #{}
+                 :useds #{}
+                 :lazy false
+                 :ephemeral? false
+                 :optimize true ;; this can also be :when-not-nil
+                 :input? false ;; not redundant: can start with rule, continue as input
+                 }
+                options)
+         :meta {:type ::tiltontec.its-alive.cell-types/c-formula})))
 
 ;;___________________ constructors _______________________________
 ;; I seem to have created a zillion of these, but I normally

@@ -17,8 +17,8 @@
                 :obs (fn-obs
                       (reset! bingo true))]
                (+ 40 2))]
-    (is (ia-type? @c ::cty/cell))
-    (is (ia-type? @c ::cty/c-formula))
+    (is (ia-type? c ::cty/cell))
+    (is (ia-type? c ::cty/c-formula))
     (is (= (c-value-state c) :unevaluated))
     (is (= #{} (c-callers c)))
     (is (= #{} (c-useds c)))
@@ -39,7 +39,7 @@
 
 (deftest test-input
   (let [c (c-in 42 :slot :bingo2)]
-    (is (ia-type? @c ::cty/cell))
+    (is (ia-type? c ::cty/cell))
     (is (= (c-value-state c) :valid))
     (is (= #{} (c-callers c)))
     (is (c-input? c))

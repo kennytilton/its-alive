@@ -42,6 +42,7 @@
 
 (defn rmap-setf [[slot ref] new-value]
   (assert (any-ref? ref))
+  (assert (map? @ref))
   (alter ref assoc slot new-value)
   new-value)
 

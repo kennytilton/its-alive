@@ -18,7 +18,6 @@
 
 (declare calculate-and-set )
 
-
 (defn ensure-value-is-current
   "The key to data integrity: recursively check the known dependency
   graph to decide if we are current, and if not kick off recalculation
@@ -112,12 +111,14 @@
   [c dbgid dbgdata]
   (let [raw-value (calculate-and-link c)]
     ;;(trx :c-set (c-slot c) raw-value)
-    (unless (c-optimized-away? c)
-            ;; this check for optimized-away? arose because a rule using without-c-dependency
-            ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
-            ;; re-exit will be of an optimized away cell, which will have been assumed
-            ;; as part of the opti-away processing.
-            (c-value-assume c raw-value nil))))
+    (when-not (c-optimized-away? c)
+      (assert (map? @c) "calc-n-set")
+
+      ;; this check for optimized-away? arose because a rule using without-c-dependency
+      ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
+      ;; re-exit will be of an optimized away cell, which will have been assumed
+      ;; as part of the opti-away processing.
+      (c-value-assume c raw-value nil))))
 
 (declare unlink-from-used)
 
@@ -136,7 +137,7 @@
 
 ;;; --- awakening ------------------------------------
 
-(defmulti c-awaken #(type (if (any-ref? %1) @%1 %1)))
+(defmulti c-awaken #(type (if (any-ref? %1) %1 %1)))
 
 (defmethod c-awaken :default [c]
   ;;(trx :awk-fallthru-entry (type c)(seq? c)(coll? c)(vector? c))
@@ -145,7 +146,7 @@
                        (c-awaken ce)))
     :else
     (println :c-awaken-fall-thru (if (any-ref? c)
-                                   [:ref-of (type @c) @c]
+                                   [:ref-of (type c) @c]
                                    [:unref c (type c)]))))
 
 (defmethod c-awaken ::cty/cell [c]
@@ -278,9 +279,15 @@ execution as soon as the current change is manifested."
                           true (optimize-away?! c prior-value)))
 
                       ;; --- data flow propagation -----------
-                      (unless (or (= propagation-code :no-propagate)
-                                  (c-optimized-away? c))
-                              (propagate c prior-value callers)))))))))
+                      (when-not (or (= propagation-code :no-propagate)
+                                    (c-optimized-away? c))
+                        (when-not (map? @c)
+                          (trx :wtf (c-optimized-away? c) propagation-code)
+                          (trx :wtf2 (c-ref? c))
+                          (trx :at-c @c))
+                        (assert (map? @c))
+                        (propagate c prior-value callers)))))))))
+
 
 ;; --- unlinking ----------------------------------------------
 (defn unlink-from-used [c why]
@@ -311,7 +318,7 @@ then clear our record of them."
   find a non-cell in a slot and Just Use It."
 
   [c prior-value]
-
+  ;;(trx :opt?! (c-formula? c))
   (when (and (c-formula? c)
              (empty? (c-useds c))
              (c-optimize c)
@@ -339,7 +346,7 @@ then clear our record of them."
                                         ; to have one last notification if this was
                                         ; a rare mid-life optimization
 
-    (trx nil :opti-nailing-c!!!!!!! (c-slot c))
+    (trx :opti-nailing-c-map!!!!!!! (c-slot c))
     (ref-set c (c-value c))
     ))
 
@@ -464,5 +471,6 @@ then clear our record of them."
                :else
                (calculate-and-set caller :propagate c)))))))))
   
+
 :evaluate-ok
 
