@@ -7,7 +7,7 @@
             [tiltontec.its-alive.cells :refer :all]
             [tiltontec.its-alive.make-model :refer :all :as md]))
 
-(deftest mm-install
+(deftest mm-install-alive
    (let [res (do ;; sync
               (md/make
                :name "Bob"
@@ -40,7 +40,9 @@
      (is (= nil (:action @res)))
      (println :loc (:loc @res))
      (is (= :missing (:loc @res)))
-     ))
+     (md-reset! res :action :return)
+     (is (= :home (:loc @res)))
+    ))
 
 #_
 (deftest mm-alive

@@ -21,6 +21,14 @@
     (c-get c)
     (:slot @me)))
 
+(defn md-reset! [me slot new-value]
+  (trx :md-reset!!!!!!! slot (md-name me) new-value)
+  (if-let [c  (slot (:cz (meta me)))]
+    (c-reset! c new-value)
+    (do
+      (err format "change to slot %s not mediated by cell" slot)
+      (rmap-setf [slot me] new-value))))
+
 ;;; --- md initialization ---
 
 (declare md-awaken)

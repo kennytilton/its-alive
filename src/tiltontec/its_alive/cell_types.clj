@@ -169,8 +169,10 @@ rule to get once behavior or just when fm-traversing to find someone"
 ;; --- defmodel rizing ---------------------
 
 (defn md-ref? [x]
+  (trx :md-ref?-sees x)
   (and (instance? clojure.lang.Ref x)
-       (ia-type? @x ::model)))
+       ;; hhack (ia-type? @x ::model)
+       ))
 
 (defmulti mdead? (fn [me]
                    (assert (or (nil? me)
@@ -179,7 +181,6 @@ rule to get once behavior or just when fm-traversing to find someone"
 
 (defmethod mdead? :default [me]
   false)
-
 
 (set! *print-level* 3) ;; cells are recursive data for now
 
