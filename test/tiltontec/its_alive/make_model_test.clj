@@ -7,6 +7,17 @@
             [tiltontec.its-alive.cells :refer :all]
             [tiltontec.its-alive.make-model :refer :all :as md]))
 
+(derive cty/ia-types ::typetest ::cty/model)
+
+(deftest mm-typed
+  (let [me (md/make
+            :type ::typetest
+            :x2 (c-in 2)
+            :age (c? (* (md-get me :x2)
+                        21)))]
+    (is (= 42 (md-get me :age)))
+    (is (ia-type? me ::typetest))))
+
 (deftest mm-opti-1
    (let [me (md/make
               :x2 2

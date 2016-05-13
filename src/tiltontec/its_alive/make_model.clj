@@ -54,12 +54,20 @@
   (dosync
    (let [me (ref (->> iargs
                       (partition 2)
+                      (filter (fn [[slot v]]
+                                (not (= :type slot))))
                       (map (fn [[k v]]
                              (vector k (if (c-ref? v)
                                          unbound
                                          v))))
                       (into {}))
-                 :meta {:state :nascent})]
+                 :meta (merge {:state :nascent}
+                              (->> iargs
+                                   (partition 2)
+                                   (filter (fn [[slot v]]
+                                             (= :type slot)))
+                                   (map vec)
+                                   (into {}))))]
      (assert (meta me))
      (rmap-meta-setf
       [:cz me]
