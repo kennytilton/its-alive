@@ -169,7 +169,7 @@ rule to get once behavior or just when fm-traversing to find someone"
 ;; --- defmodel rizing ---------------------
 
 (defn md-ref? [x]
-  (trx :md-ref?-sees x)
+  ;;(trx :md-ref?-sees x)
   (and (instance? clojure.lang.Ref x)
        ;; hhack (ia-type? @x ::model)
        ))

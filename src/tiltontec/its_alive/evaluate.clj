@@ -111,7 +111,7 @@
   "Calculate, link, record, and propagate."
   [c dbgid dbgdata]
   (let [raw-value (calculate-and-link c)]
-    (trx :c-set (c-slot c) raw-value)
+    ;;(trx :c-set (c-slot c) raw-value)
     (unless (c-optimized-away? c)
             ;; this check for optimized-away? arose because a rule using without-c-dependency
             ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
@@ -139,7 +139,7 @@
 (defmulti c-awaken #(type (if (any-ref? %1) @%1 %1)))
 
 (defmethod c-awaken :default [c]
-  (trx :awk-fallthru-entry (type c)(seq? c)(coll? c)(vector? c))
+  ;;(trx :awk-fallthru-entry (type c)(seq? c)(coll? c)(vector? c))
   (cond
     (coll? c) (doall (for [ce c]
                        (c-awaken ce)))
@@ -153,8 +153,7 @@
   ;
   ; nothing to calculate, but every cellular slot should be output on birth
   ;
-  (trx :awk-input (c-slot c)
-        @+pulse+ (c-pulse-observed c))
+  ;; (trx :awk-input (c-slot c)@+pulse+ (c-pulse-observed c))
   (dosync
    (when (> @+pulse+ (c-pulse-observed c)) ;; safeguard against double-call
      (when-let [me (c-me c)]
@@ -165,11 +164,12 @@
 (defmethod c-awaken ::cty/c-formula [c]
   (dosync
    ;; hhack -- bundle this up into reusable with evic
-   (trx :c-formula-awk (c-slot c)(c-current? c))
+   ;; (trx :c-formula-awk (c-slot c)(c-current? c))
    (binding [*depender* nil]
      (when-not (c-current? c)
        (calculate-and-set c :fn-c-awaken nil)
-       (c-observe c unbound :c-formula-awk)))))
+       (when-not (c-optimized-away? c) ;; gets observed during opti-away
+         (c-observe c unbound :c-formula-awk))))))
 
 ;; ------------------------------------------------------------
 

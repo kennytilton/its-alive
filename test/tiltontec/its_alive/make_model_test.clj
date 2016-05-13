@@ -7,15 +7,28 @@
             [tiltontec.its-alive.cells :refer :all]
             [tiltontec.its-alive.make-model :refer :all :as md]))
 
+(deftest mm-opti-1
+   (let [me (md/make
+              :x2 2
+              :age (c? (* 21 (md-get me :x2)))
+              )]
+     (println :meta (meta me))
+     (is (= 2 (md-get me :x2)))
+     (is (= 42 (md-get me :age)))
+     (is (nil? (md-cell me :age)))
+     ))
+
 (deftest mm-install-alive
-   (let [res (do ;; sync
+   (let [bct (atom 0)
+         res (do ;; sync
               (md/make
                :name "Bob"
                :action (c-in nil
                              :ephemeral? true)
                :bogus (c? (if-let [be (md-get me :bogus-e)]
                             (do
-                              (trx :bingo-e!!!!!!!! be)
+                              (trx :bingo-e!!!!!!!! be @bct)
+                              (swap! bct inc)
                               (* 2 be))
                             (trx :bogus-no-e (:bogus-e @me))))
                :bogus-e (c-in 21 :ephemeral? true)
@@ -23,7 +36,7 @@
                             :leave :away
                             :return :home
                             :missing))))]
-     ;; (println :meta (meta @res))
+     (println :meta (meta res))
      (is (= (:cz (meta res)) (md-cz res)))
      (is (= 4 (count (md-cz res))))
      (is (every? c-ref? (vals (md-cz res))))
@@ -40,26 +53,11 @@
      (is (= nil (:action @res)))
      (println :loc (:loc @res))
      (is (= :missing (:loc @res)))
+     (is (= 1 @bct))
+     (reset! bct 0)
      (md-reset! res :action :return)
      (is (= :home (:loc @res)))
+     (is (zero? @bct))
     ))
 
-#_
-(deftest mm-alive
-  (let [res (md/make
-             :name "Bob"
-             :action (c-in nil
-                           :ephemeral? true)
-             :loc (c? (case (:action @me)
-                        :leave :away
-                        :return :home
-                        :missing)))]
-    (is (= (:name @res) "Bob"))
-    (is (= (name res) "Bob"))
-    (is (= (:loc @res) :missing))
-    (is (= (loc res) :missing))
-    (c-reset! (action res) :return)
-    (is (= (:loc @res) :home))
-    (is (= (loc res) :home))
-    ))
 
