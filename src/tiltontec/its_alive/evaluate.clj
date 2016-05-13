@@ -12,11 +12,12 @@
   (when-not (c-optimized-away? used)
     (assert *depender*)
     (trx nil :reco-dep!!! :used (c-slot used) :caller (c-slot *depender*))
-    (rmap-setf (:useds *depender*)
+    (rmap-setf [:useds *depender*]
                (conj (c-useds *depender*) used))
     (caller-ensure used *depender*)))
 
 (declare calculate-and-set )
+
 
 (defn ensure-value-is-current
   "The key to data integrity: recursively check the known dependency
@@ -75,7 +76,7 @@
   :else (do ;(trx nil :just-pulse)
             (c-pulse-update c :valid-uninfluenced)
             (c-value c))))
-
+                         
 (defn c-get
   "The API for determing the value associated with a Cell.
   Ensures value is current, records any dependent, and
@@ -90,11 +91,14 @@
                     (prog1
                      (ensure-value-is-current c :c-read nil)
                      ;; this is new here, intended to awaken standalone cells JIT
-                     ;; /do/ might be better inside evic
-                     (when (and (= (c-state c) :nascent)
+                     ;; /do/ might be better inside evic, or test here
+                     ;; to see if c-model is nil? (trying latter...)
+                     (when (and (nil? (c-model c))
+                                (= (c-state c) :nascent)
                                 (> @+pulse+ (c-pulse-observed c)))
-                       (rmap-setf (:state c) :awake)
-                       (c-observe c prior-value :c-get)))))
+                       (rmap-setf [:state c] :awake)
+                       (c-observe c prior-value :c-get)
+                       (ephemeral-reset c)))))
                 (when *depender*
                   (record-dependency c)))
     (any-ref? c) @c
@@ -107,6 +111,7 @@
   "Calculate, link, record, and propagate."
   [c dbgid dbgdata]
   (let [raw-value (calculate-and-link c)]
+    (trx :c-set (c-slot c) raw-value)
     (unless (c-optimized-away? c)
             ;; this check for optimized-away? arose because a rule using without-c-dependency
             ;; can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
@@ -134,7 +139,7 @@
 (defmulti c-awaken #(type (if (any-ref? %1) @%1 %1)))
 
 (defmethod c-awaken :default [c]
-  ;; (trx :awk-thru-entry (type c)(seq? c)(coll? c)(vector? c))
+  (trx :awk-fallthru-entry (type c)(seq? c)(coll? c)(vector? c))
   (cond
     (coll? c) (doall (for [ce c]
                        (c-awaken ce)))
@@ -148,26 +153,30 @@
   ;
   ; nothing to calculate, but every cellular slot should be output on birth
   ;
+  (trx :awk-input (c-slot c)
+        @+pulse+ (c-pulse-observed c))
   (dosync
    (when (> @+pulse+ (c-pulse-observed c)) ;; safeguard against double-call
-     (c-observe c :c-awaken)
+     (when-let [me (c-me c)]
+       (rmap-setf [(c-slot c) me] (c-value c)))
+     (c-observe c :cell-awaken)
      (ephemeral-reset c))))
 
 (defmethod c-awaken ::cty/c-formula [c]
   (dosync
    ;; hhack -- bundle this up into reusable with evic
+   (trx :c-formula-awk (c-slot c)(c-current? c))
    (binding [*depender* nil]
      (when-not (c-current? c)
        (calculate-and-set c :fn-c-awaken nil)
-       (c-observe c unbound :c-awk)))))
+       (c-observe c unbound :c-formula-awk)))))
 
 ;; ------------------------------------------------------------
 
 (declare c-absorb-value
          optimize-away?!
          propagate
-         c-value-changed?
-         md-slot-value-store)
+         c-value-changed?)
 
 ;; --- where change and animation begin -------
 
@@ -213,6 +222,11 @@ execution as soon as the current change is manifested."
                      (dosync
                       (c-value-assume c# new-value# nil)))))])))
 
+(defn md-slot-value-store [me slot value]
+  (assert me)
+  (assert (any-ref? me))
+  (rmap-setf [slot me] value))
+
 (defn c-value-assume
   "The Cell assumes a new value at awakening, on c-reset!, or
    after formula recalculation.
@@ -235,12 +249,12 @@ execution as soon as the current change is manifested."
                   ;; hhhack: new for 4/19/2016: even if no news at
                   ;; least honor the reset!
                   ;;
-                  (rmap-setf (:value c) new-value)
-                  (rmap-setf (:state c) :awake)
+                  (rmap-setf [:value c] new-value)
+                  (rmap-setf [:state c] :awake)
                   ;; 
                   ;; --- model maintenance ---
                   (when (and (c-model c)
-                             (c-synaptic? c) )
+                             (not (c-synaptic? c) ))
                     (md-slot-value-store (c-model c) (c-slot-name c) new-value))
                   
                   (c-pulse-update c :slotv-assume)
@@ -274,14 +288,15 @@ execution as soon as the current change is manifested."
 then clear our record of them."
   (for [used (c-useds c)]
     (do
-        (rmap-setf (:callers used) (disj (c-callers used) c))))
+        (rmap-setf [:callers used] (disj (c-callers used) c))))
 
-  (rmap-setf (:useds c) #{}))
+  (rmap-setf [:useds c] #{}))
 
 (defn md-cell-flush [c]
-  (when (c-model c)
-    (rmap-setf (:cells-flushed)
-               (conj (:cells-flushed (c-model c))
+  (assert (c-ref? c))
+  (when-let [me (c-model c)]
+    (rmap-setf [:cells-flushed me]
+               (conj (:cells-flushed me)
                      [(c-slot c)(c-pulse-observed c)]))))
 
 ;; --- optimize away ------------------------------------------
@@ -305,11 +320,12 @@ then clear our record of them."
              (not (c-synaptic? c)) ;; no slot to cache invariant result, so they have to stay around)
              (not (c-input? c)) ;; yes, dependent cells can be inputp
              )
-    (rmap-setf (:state c) :optimized-away) ;; leaving this for now, but we toss
+    (trx :opti-away!!!! @c)
+    (rmap-setf [:state c] :optimized-away) ;; leaving this for now, but we toss
                                         ; the cell below. hhack
     (c-observe c prior-value :opti-away)
     (when-let [me (c-model c)]
-      (rmap-setf (:cells me) (dissoc (:cells @me) (c-slot c)))
+      (rmap-meta-setf [:cz me] (dissoc (:cz @me) (c-slot c)))
       (md-cell-flush c))
     
     ;; let callers know they need not check us for currency again
@@ -351,7 +367,7 @@ then clear our record of them."
 (def ^:dynamic *custom-propagater* nil)
 
 (declare propagate-to-callers
-         md-slot-owning?
+
          md-slot-cell-flushed
          not-to-be)
 
@@ -373,7 +389,7 @@ then clear our record of them."
    ;; ----------------------------------
    :else
    (do
-     (rmap-setf (:pulse-last-changed c) @+pulse+)
+     (rmap-setf [:pulse-last-changed c] @+pulse+)
      
      (binding [*depender* nil
                *call-stack* nil

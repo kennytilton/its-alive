@@ -42,14 +42,13 @@ call parameters: slot, me, new, old, and c."
   `(fn [~'slot ~'me ~'new ~'old ~'c]
      ~@body))
      
-
 (defn c-observe
   ([c why]
    (c-observe c unbound why))
   ([c prior-value why]
    (assert (c-ref? c))
-   (rmap-setf (:pulse-observed c) @+pulse+)
-   (trx nil :c-obs-pulse! @+pulse+ (:obs @c))
+   (rmap-setf [:pulse-observed c] @+pulse+)
+   (trx :c-obs-pulse! (c-slot c) why @+pulse+ (:obs @c))
    ((or (:obs @c) observe)
     (c-slot c)(c-model c)(c-value c) prior-value c)))
 

@@ -117,7 +117,7 @@ rule to get once behavior or just when fm-traversing to find someone"
        (ia-type? @x ::cell)))
 
 (def-rmap-slots c-
-  slot state input? rule pulse pulse-last-changed pulse-observed
+  me slot state input? rule pulse pulse-last-changed pulse-observed
   useds users callers optimize ephemeral?
   lazy synaptic?)
 
@@ -183,6 +183,9 @@ rule to get once behavior or just when fm-traversing to find someone"
 
 (set! *print-level* 3) ;; cells are recursive data for now
 
+(defn md-slot-owning? [class-name slot-name]
+  ;; hhack
+  false)
 
 :cell-types-ok
 

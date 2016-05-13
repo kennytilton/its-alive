@@ -37,10 +37,27 @@
                  [~'ref]
                  (~(keyword slot#) @~'ref))) slots)))
 
-(defmacro rmap-setf [[slot ref] new-value-form]
-  `(let [new-value# ~new-value-form]
-     (alter ~ref assoc ~slot new-value#)
-     new-value#))
+(defn any-ref? [x]
+  (instance? clojure.lang.Ref x))
+
+(defn rmap-setf [[slot ref] new-value]
+  (assert (any-ref? ref))
+  (alter ref assoc slot new-value)
+  new-value)
+
+(defmacro def-rmap-meta-slots [reader-prefix & slots]
+  `(do
+     ~@(map (fn [slot#]
+              `(defn ~(symbol (str (or reader-prefix "")
+                                   slot#))
+                 [~'ref]
+                 (~(keyword slot#) (meta ~'ref)))) slots)))
+
+
+(defn rmap-meta-setf [[slot ref] new-value]
+  (assert (meta ref))
+  (alter-meta! ref assoc slot new-value)
+  new-value)
 
 ;; --- error handling -----------------
 
@@ -53,8 +70,7 @@
   (defmethod err :default [& bits]
     (throw (Exception. ($/join " " (cons "jz/err>" bits))))))
 
-(defn any-ref? [x]
-  (instance? clojure.lang.Ref x))
+
 
 ;; ---- debug print statement hacks ---------------------
 

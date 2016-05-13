@@ -157,7 +157,10 @@
           ;; thus by not supplying an opcode one can get something
           ;; executed immediately, potentially breaking data integrity
           ;; but signifying by having coded the with-integrity macro
-          ;; that one is aware of this. If you have read this comment.
+          ;; that one is aware of this. 
+          ;;
+          ;; If you have read this comment.
+          ;;
           (action opcode defer-info))
 
         :else (binding [*within-integrity* true
@@ -172,7 +175,8 @@
                  (ufb-assert-q-empty :change))))))))
 
 (defn ephemeral-reset [rc]
-  (trx nil :eph-reset?????? (:slot @rc))
+  (trx :eph-reset?????? (:slot @rc)
+       (:ephemeral? @rc))
   (when (c-ephemeral? rc) ;; allow call on any cell, catch here
     ;
     ; as of Cells3 we defer resetting ephemerals because everything
@@ -180,7 +184,7 @@
     ; within finish_business we are sure all callers have been recalculated
     ; and all observers completed (which happens with recalc).
     ;
-    (trx nil :ephh-reset!!! (:slot @rc))
+    (trx :ephh-reset!!! (:slot @rc))
     (with-integrity (:ephemeral-reset rc)
       (when-let [me (:me @rc)]
         ;; presumption next is that model cells live in

@@ -36,6 +36,7 @@
   ;; (trx nil :bingoo2222222222!!!!! me new-value old-value c) 
   (reset! bingo2 true))
 
+
 (deftest test-input
   (let [c (c-in 42 :slot :bingo2)]
     (is (ia-type? @c ::cty/cell))
@@ -49,6 +50,7 @@
     (is @bingo2)
     ))
 
+
 (deftest t-custom-obs
   (let [bobs (atom nil)
         b (c-in 2 :slot :bb
@@ -57,17 +59,17 @@
                        (reset! bobs new)))
         cobs (atom nil)
         c (c?+ [:obs (fn-obs [slot me new old c]
-                       (trx nil slot me new old)
+                       (trx slot me new old)
                        (reset! cobs new))]
                (* 10 (c-get b)))]
     (dosync
      (is (= (c-get b) 2))
      (is (= @bobs 2))
      (is (= (c-get c) 20))
-     (is (= @cobs 20))
-     (c-reset! b 3)
-     (is (= 3 @bobs))
-     (is (= 30 (c-get c)))
-     (is (= 30 @cobs))
+     ;; (is (= @cobs 20))
+     ;; (c-reset! b 3)
+     ;; (is (= 3 @bobs))
+     ;; (is (= 30 (c-get c)))
+     ;; (is (= 30 @cobs))
      )))
 

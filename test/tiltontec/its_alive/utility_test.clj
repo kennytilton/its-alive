@@ -36,14 +36,14 @@
   (let [x (ref {:value 0 :boom 42})]
     (is (= 42 (jj-boom x)))
     (is (= 0 (:value @x)))
-    (dosync (rmap-setf (:value x) 42))
+    (dosync (rmap-setf [:value x] 42))
     (trx nil :xxx x @x (:value @x))
     (is (= 42 (:value @x)))
-    (is (let [j (dosync (rmap-setf (:value x) 43))]
+    (is (let [j (dosync (rmap-setf [:value x] 43))]
                                         ;(trx nil :xxx x @x (:value @x))          
                                         ;(trx nil :j j (type j))
           (= 43 j)))
-    (is (= 44 (dosync (rmap-setf (:value x) 44))))
+    (is (= 44 (dosync (rmap-setf [:value x] 44))))
     ))
 
 (deftest err-handling
