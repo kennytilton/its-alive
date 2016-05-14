@@ -31,7 +31,6 @@ rule to get once behavior or just when fm-traversing to find someone"
 (def ^:dynamic *unfinished-business* nil)
 (def ^:dynamic *within-integrity* false)
 
-
 ;; --- debug stuff -----------------------------
 (def ^:dynamic *finbiz-id* 0)
 (def ^:dynamic *c-prop-depth* 0)

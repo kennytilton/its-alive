@@ -281,10 +281,6 @@ execution as soon as the current change is manifested."
                       ;; --- data flow propagation -----------
                       (when-not (or (= propagation-code :no-propagate)
                                     (c-optimized-away? c))
-                        (when-not (map? @c)
-                          (trx :wtf (c-optimized-away? c) propagation-code)
-                          (trx :wtf2 (c-ref? c))
-                          (trx :at-c @c))
                         (assert (map? @c))
                         (propagate c prior-value callers)))))))))
 
@@ -327,7 +323,7 @@ then clear our record of them."
              (not (c-synaptic? c)) ;; no slot to cache invariant result, so they have to stay around)
              (not (c-input? c)) ;; yes, dependent cells can be inputp
              )
-    (trx :opti-away!!!! @c)
+    ;;(trx :opti-away!!!! @c)
     (rmap-setf [:state c] :optimized-away) ;; leaving this for now, but we toss
                                         ; the cell below. hhack
     (c-observe c prior-value :opti-away)
@@ -346,7 +342,7 @@ then clear our record of them."
                                         ; to have one last notification if this was
                                         ; a rare mid-life optimization
 
-    (trx :opti-nailing-c-map!!!!!!! (c-slot c))
+    ;;(trx :opti-nailing-c-map!!!!!!! (c-slot c))
     (ref-set c (c-value c))
     ))
 

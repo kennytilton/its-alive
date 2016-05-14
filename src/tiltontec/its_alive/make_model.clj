@@ -78,7 +78,8 @@
            (map vec)
            (into {})))
      (with-integrity (:awaken me)
-       (md-awaken me)))))
+       (md-awaken me))
+     me)))
   
 (defn md-awaken
   "(1) do initial evaluation of all ruled slots
