@@ -170,6 +170,7 @@
      (when-not (c-current? c)
        (calculate-and-set c :fn-c-awaken nil)
        (when-not (c-optimized-away? c) ;; gets observed during opti-away
+         (trx :awk-not-opti (c-slot c)(c-value c))
          (c-observe c unbound :c-formula-awk))))))
 
 ;; ------------------------------------------------------------
@@ -179,53 +180,11 @@
          propagate
          c-value-changed?)
 
-;; --- where change and animation begin -------
-
-(defn c-reset! [c new-value]
-  "The moral equivalent of a Common Lisp SETF, and indeed
-in the CL version of Cells SETF itself is the change API dunction."
-  (cond
-    *defer-changes*
-    (throw (Exception. "c-reset!> change to %s must be deferred by wrapping it in WITH-INTEGRITY"
-                       (c-slot c)))
-    ;-----------------------------------
-    (some #{(c-lazy c)} [:once-asked :always true])
-    (c-value-assume c new-value nil)
-    ;-------------------------------------------
-    :else
-    (dosync
-     (with-integrity (:change (c-slot c))
-       (c-value-assume c new-value nil)))))
-
-(defmacro c-reset-next! [f-c f-new-value]
-  "Observers should have side-effects only outside the
-cell-mediated model, but it can be useful to have an observer
-kick off further change to the model. To achieve this we
-allow an observer to explicitly queue a c-reset! for 
-execution as soon as the current change is manifested."
-  `(cond
-     (not *within-integrity*)
-     (throw (Exception. "c-reset-next!> deferred change to %s not under WITH-INTEGRITY supervision."
-                        (c-slot ~f-c)))
-     ;---------------------------------------------
-     :else
-     (ufb-add :change
-              [:c-reset-next!
-               (fn [~'opcode ~'defer-info]
-                 (let [c# ~f-c
-                       new-value# ~f-new-value]
-                   (cond
-                     ;;-----------------------------------
-                     (some #{(c-lazy c#)} [:once-asked :always true])
-                     (c-value-assume c# new-value# nil)
-                     ;;-------------------------------------------
-                     :else
-                     (dosync
-                      (c-value-assume c# new-value# nil)))))])))
 
 (defn md-slot-value-store [me slot value]
   (assert me)
   (assert (any-ref? me))
+  (trx :mdsv-store slot (flz value))
   (rmap-setf [slot me] value))
 
 (defn c-value-assume
@@ -252,6 +211,9 @@ execution as soon as the current change is manifested."
                   ;;
                   (rmap-setf [:value c] new-value)
                   (rmap-setf [:state c] :awake)
+                  (trx :new-vlue-installed (c-slot c) 
+                       new-value
+                       (:value c))
                   ;; 
                   ;; --- model maintenance ---
                   (when (and (c-model c)
@@ -346,6 +308,28 @@ then clear our record of them."
     (ref-set c (c-value c))
     ))
 
+;; --- c-quiesce -----------
+
+(defn c-quiesce [c]
+  (unlink-from-callers c)
+  (unlink-from-used c :quiesce)
+  (ref-set c :dead-c))
+
+;; --- not-to-be --
+
+
+(defmulti not-to-be (fn [me]
+                      (assert (md-ref? me))
+                      [(type (when me @me))]))
+
+(defmethod not-to-be :default [me]
+  (trx :n2be-deflt me)
+  (trx :n2be-deflt me (type (when me @me)))
+  (doseq [c (vals (:cz (meta me)))]
+    (c-quiesce c))
+  (ref-set me nil)
+  (rmap-meta-setf [:state me] :dead))
+
 ;----------------- change detection ---------------------------------
 
 (defmulti unchanged-test
@@ -357,10 +341,12 @@ then clear our record of them."
   (fn [me slot]
     [(when me (type @me)) slot]))
      
-(defmethod unchanged-test :default [self slotname] =)
+(defmethod unchanged-test :default [self slotname]
+  (trx :std-unchanged slotname)
+  =)
 
 (defn c-value-changed? [c new-value old-value]
-  (trx nil :unchanged? (:slot @c) new-value old-value)
+  (trx :unchanged? (:slot @c) new-value old-value)
   (not ((or (:unchanged-if @c)
             (unchanged-test (c-model c) (c-slot c)))
         new-value old-value)))
@@ -371,8 +357,7 @@ then clear our record of them."
 
 (declare propagate-to-callers
 
-         md-slot-cell-flushed
-         not-to-be)
+         md-slot-cell-flushed)
 
 (defn propagate
   "A cell:

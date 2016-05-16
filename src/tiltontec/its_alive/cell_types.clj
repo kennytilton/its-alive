@@ -23,10 +23,10 @@ rule to get once behavior or just when fm-traversing to find someone"
 
 
 (defonce unbound (gensym "unbound-cell-value"))
-(defonce unevaluated (gensym "unevaluated-formulaic-value"))
 (defonce uncurrent (gensym "uncurrent-formulaic-value"))
 
 (def ^:dynamic *not-to-be* false)
+
 
 (def ^:dynamic *unfinished-business* nil)
 (def ^:dynamic *within-integrity* false)
@@ -156,6 +156,11 @@ rule to get once behavior or just when fm-traversing to find someone"
 (defn caller-drop [used caller]
   (alter used assoc :callers (disj (c-callers used) caller)))
 
+(defn unlink-from-callers [c]
+  (for [caller (c-callers c)]
+    (caller-drop c caller))
+  (rmap-setf [:callers c] nil))
+
 ;; debug aids --------------
 
 (defn c-slots [c k]
@@ -170,6 +175,8 @@ rule to get once behavior or just when fm-traversing to find someone"
        ;; hhack (ia-type? x ::model)
        ))
 
+;; --- mdead? ---
+
 (defmulti mdead? (fn [me]
                    (assert (or (nil? me)
                                (md-ref? me)))
@@ -177,6 +184,8 @@ rule to get once behavior or just when fm-traversing to find someone"
 
 (defmethod mdead? :default [me]
   false)
+
+;;--- 
 
 (set! *print-level* 3) ;; cells are recursive data for now
 

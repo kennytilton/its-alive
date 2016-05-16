@@ -14,7 +14,7 @@
         a (c-in 0)
         x (c?_ [:obs (fn-obs (swap! xo inc))]
                (+ (c-get a) 40))]
-    (is (= unevaluated (:value @x)))
+    (is (= unbound (:value @x)))
     (is (= 0 @xo))
     (is (= 40 (c-get x)))
     (is (= 1 @xo)) 
@@ -33,7 +33,7 @@
         x (c_? [:obs (fn-obs (swap! xo inc))]
                (swap! xr inc)
                (+ (c-get a) 40))]
-    (is (= unevaluated (:value @x)))
+    (is (= unbound (:value @x)))
     (is (= 0 @xo))
     (is (= 0 @xr))
     (is (= 40 (c-get x)))

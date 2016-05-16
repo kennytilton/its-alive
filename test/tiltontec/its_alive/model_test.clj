@@ -1,11 +1,13 @@
-(ns tiltontec.its-alive.make-model-test
+(ns tiltontec.its-alive.model-test
   (:require [clojure.test :refer :all]
             [tiltontec.its-alive.utility :refer :all] 
             [tiltontec.its-alive.cell-types :refer :all :as cty]
             ;[tiltontec.its-alive.observer :refer :all]
             [tiltontec.its-alive.evaluate :refer :all]
             [tiltontec.its-alive.cells :refer :all]
-            [tiltontec.its-alive.make-model :refer :all :as md]))
+            [tiltontec.its-alive.model-base :refer :all]
+            [tiltontec.its-alive.model :refer :all :as md]))
+
 
 (derive cty/ia-types ::typetest ::cty/model)
 

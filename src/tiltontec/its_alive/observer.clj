@@ -2,9 +2,10 @@
   (:use [tiltontec.its-alive.utility :refer :all]
         [tiltontec.its-alive.cell-types :refer :all]))
 
+
 (defmulti observe (fn [slot-name me new-val old-val c]
                     [slot-name
-                     (type (when (md-ref? me) @me))
+                     (type (when (md-ref? me) me))
                      (type new-val)
                      (type old-val)]))
 
@@ -20,8 +21,8 @@
 (defmethod observe :default [slot me new-val old-val c]
   #_(println :obs-fall-thru  slot
            (cond
-            (md-ref? me)(type @me)
-            :else me)
+             (md-ref? me)(type me)
+             :else me)
            new-val old-val c))
 
 (defmacro defobserver [slot types params & body]
@@ -46,10 +47,11 @@ call parameters: slot, me, new, old, and c."
   ([c why]
    (c-observe c unbound why))
   ([c prior-value why]
-   ;;(trx :cobs c @c why)
+   (trx :cobs-3 (c-slot c) why)
    (assert (c-ref? c))
    (rmap-setf [:pulse-observed c] @+pulse+)
    ;;(trx :c-obs-pulse! (c-slot c) why @+pulse+ (:obs @c))
+   (trx :c-obs-value! why (c-slot c) (c-model c) (c-value c) prior-value c)
    ((or (:obs @c) observe)
     (c-slot c)(c-model c)(c-value c) prior-value c)))
 

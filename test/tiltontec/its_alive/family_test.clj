@@ -4,12 +4,38 @@
    ;;[clojure.set :refer [difference]]
    [tiltontec.its-alive.utility :refer :all]
    [tiltontec.its-alive.cell-types :refer :all :as cty]
-   ;;[tiltontec.its-alive.observer :refer :all]
+   [tiltontec.its-alive.evaluate :refer :all]
    [tiltontec.its-alive.cells :refer :all :as cz]
-   [tiltontec.its-alive.make-model :refer :all :as md]
+   [tiltontec.its-alive.model-base :refer :all]
+   [tiltontec.its-alive.model :refer :all :as md]
    [tiltontec.its-alive.family :refer :all :as fm]
    ))
 
+(deftest fm-0
+  (cells-init)
+  (let [u (md/make
+           :kon (c-in false :slot :kon)
+           :kids (c? (trx :kids-run! *depender*)
+                     (when (md-get me :kon)
+                       (trx :kon-bingo! 42)
+                       (vector
+                        (md/make
+                         :par me
+                         :name :konzo
+                         :kzo (c-in 3))))))]
+    (is (nil? (:kids @u)))
+    (let [kc (md-cell u :kids)
+          kon (md-cell u :kon)]
+      (trx :kon-1 kon @kon)
+      (doall (for [u (vec (:useds @kc))]
+               (trx :xu!!!!!!!!! (:slot @u))))
+      (trx :kon-set!!! @kon)
+      (c-reset! kon true)
+      (trx :kon-2 kon @kon)
+      ;;(is (:kon @u))
+      (is (= 1 (count (:kids @u))))
+      (is (fget :konzo u :inside? true))
+      )))
 
 (deftest fm-1
   (is (fget= :bob (ref {:name :bob})))
@@ -47,7 +73,7 @@
     (let [bba (fget :bba u :inside? true :must? true)]
       (is bba)
       (trx :bba! bba)
-      (is (fget :uni bba :inside? true :up? true))
+      (is (fm/fget :uni bba :inside? true :up? true))
       (is (fget :aa bba :inside? false :up? true))
       (is (fget :bb bba :inside? true :up? true))
       (is (fget :bbb bba :inside? false :up? true))
@@ -58,19 +84,62 @@
   (let [u (md/make
            :u63 (c? (+ (mdv! :aa :aa42)
                        (mdv! :bb :bb21)))
-           :kids (c? (vector
+           :kon (c-in false)
+           :kids (c? (trx :kids-run!!!!!!!!!!!! me)
+                     (remove nil?
+                             (vector
+                              (md/make
+                               :par me
+                               :name :aa
+                               :aa42 (c? (* 2 (mdv! :bb :bb21)))
+                               :aa3 (c-in 3))
+                              (when (md-get me :kon)
+                                (trx :kon-bingo! 42)
+                                (md/make
+                                 :par me
+                                 :name :konzo
+                                 :kzo (c-in 3)))
+                              (md/make
+                               :par me
+                               :name :bb
+                               :bb21 (c? (* 7 (mdv! :aa :aa3))))))))]
+    (is (= 63 (md-get u :u63)))
+    (is (= 42 (mdv! :aa :aa42 u)))
+    (is (= 21 (mdv! :bb :bb21 u)))
+    (is (nil? (fget :konzo u :must? false)))
+    (trx :kon-set!!! true)
+    (c-reset! (md-cell u :kon) true)
+    (is (:kon @u))
+    (is (md-cell u :kon))
+    (is (= 3 (count (:kids @u))))
+    (is (fget :konzo u :inside? true))
+    ))
+    
+(deftest fm-3x
+  (let [u (md/make
+           :u63 (c? (+ (mdv! :aa :aa42)
+                       (mdv! :bb :bb21)))
+           :kon (c-in false)
+           :kids (c? (the-kids
                       (md/make
-                       :par me
                        :name :aa
                        :aa42 (c? (* 2 (mdv! :bb :bb21)))
                        :aa3 (c-in 3))
+                      (when (md-get me :kon)
+                        (md/make
+                         :name :konzo
+                         :kzo (c-in 3))) 
                       (md/make
-                       :par me
                        :name :bb
                        :bb21 (c? (* 7 (mdv! :aa :aa3)))))))]
     (is (= 63 (md-get u :u63)))
     (is (= 42 (mdv! :aa :aa42 u)))
-    (is (= 21 (md-get (fm! :bb u) :bb21)))
+    (is (= 21 (mdv! :bb :bb21 u)))
+    (is (nil? (fget :konzo u :must? false)))
+    (trx :kon-set!!! true)
+    (c-reset! (md-cell u :kon) true)
+    (is (:kon @u))
+    (is (md-cell u :kon))
+    (is (= 3 (count (:kids @u))))
+    (is (fget :konzo u :inside? true))
     ))
-    
-                                       

@@ -5,7 +5,7 @@
             [tiltontec.its-alive.cells :refer :all]
             [tiltontec.its-alive.integrity :refer :all]
             [tiltontec.its-alive.observer :refer :all]
-            [tiltontec.its-alive.evaluate :refer [c-get c-reset!]]
+            [tiltontec.its-alive.evaluate :refer [c-get]]
             ))
 
 (set! *print-level* 3)
@@ -27,7 +27,7 @@
     (is (isa? ia-types ::cty/c-formula ::cty/cell))
     (is (ia-type? c ::cty/cell))
     (is (ia-type? c ::cty/c-formula))
-    (is (= (c-value-state c) :unevaluated))
+    (is (= (c-value-state c) :unbound))
     (is (= #{} (c-callers c)))
     (is (= #{} (c-useds c)))
     (is (not (c-input? c)))

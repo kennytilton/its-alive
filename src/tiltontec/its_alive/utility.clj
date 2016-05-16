@@ -98,6 +98,13 @@
       (let [path (apply str (repeat *trxdepth* "."))]
         (println path (call-trc$ s os))))))
 
+(defn flz [x]
+  (if (isa? (type x) clojure.lang.LazySeq)
+    (vec (doall x))
+    x))
+#_
+(flz (map even? [1 2 3]))
+
 (defmacro trx [label & vals]
   `(call-trc ~(when (not (nil? label))
                 (str label))
