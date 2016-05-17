@@ -47,7 +47,7 @@ call parameters: slot, me, new, old, and c."
   ([c why]
    (c-observe c unbound why))
   ([c prior-value why]
-   ;;(trx :cobs-3 (c-slot c) why)
+   ;; (trx :cobs-3 (c-slot c) why)
    (assert (c-ref? c))
    (rmap-setf [:pulse-observed c] @+pulse+)
    ;;(trx :c-obs-pulse! (c-slot c) why @+pulse+ (:obs @c))

@@ -7,13 +7,13 @@
    [tiltontec.its-alive.observer :refer :all]
    [tiltontec.its-alive.cells :refer :all]
    [tiltontec.its-alive.model-base :refer :all]
-   ;;[tiltontec.its-alive.family :refer :all]
+   [tiltontec.its-alive.family :refer :all]
    ))
 
 ;;; --- accessors ----
 
 (defn md-reset! [me slot new-value]
-  (trx :md-reset!!!!!!! slot (md-name me) new-value)
+  ;;(trx :md-reset!!!!!!! slot (md-name me) new-value)
   (if-let [c  (md-cell me slot)]
     (c-reset! c new-value)
     (do

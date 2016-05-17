@@ -18,7 +18,7 @@
                (+ 40 2))]
     (is (ia-type? c ::cty/cell))
     (is (ia-type? c ::cty/c-formula))
-    (is (= (c-value-state c) :unevaluated))
+    (is (= (c-value-state c) :unbound))
     (is (= #{} (c-callers c)))
     (is (= #{} (c-useds c)))
     (is (not (c-input? c)))

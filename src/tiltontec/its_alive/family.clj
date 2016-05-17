@@ -77,7 +77,6 @@
      (remove nil? (flatten (list ~@tree)))))
 
 (defobserver :kids [::family][me newk oldk c]
-  (trx :bingo-kfam!! slot me (flz newk)(flz oldk))
   (when-not (= oldk unbound)
     (let [lostks (difference (set oldk)(set newk))]
       (trx :lostks (flz lostks))

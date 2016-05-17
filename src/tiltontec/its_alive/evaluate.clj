@@ -168,10 +168,7 @@
    ;; (trx :c-formula-awk (c-slot c)(c-current? c))
    (binding [*depender* nil]
      (when-not (c-current? c)
-       (calculate-and-set c :fn-c-awaken nil)
-       (when-not (c-optimized-away? c) ;; gets observed during opti-away
-         ;(trx :awk-not-opti (c-slot c)(c-value c))
-         (c-observe c unbound :c-formula-awk))))))
+       (calculate-and-set c :fn-c-awaken nil)))))
 
 ;; ------------------------------------------------------------
 

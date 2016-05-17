@@ -138,7 +138,6 @@ rule to get once behavior or just when fm-traversing to find someone"
   (let [v (c-value rc)]
     (cond
       (= v unbound) :unbound
-      (= v unevaluated) :unevaluated
       (= v uncurrent) :uncurrent
       :else :valid)))
 
