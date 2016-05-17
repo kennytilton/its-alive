@@ -12,7 +12,7 @@
    ))
 
 (deftest k-notq2be
-  (let [f (md/make :type ::fm/family
+  (let [f (md/make ::fm/family
                    :ee (c-in 2)
                    :kids (c? (the-kids
                               (when (odd? (md-get me :ee))

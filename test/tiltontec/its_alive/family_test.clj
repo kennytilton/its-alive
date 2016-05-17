@@ -17,7 +17,6 @@
            :kon (c-in false :slot :kon)
            :kids (c? (trx :kids-run! *depender*)
                      (when (md-get me :kon)
-                       (trx :kon-bingo! 42)
                        (vector
                         (md/make
                          :par me
@@ -26,13 +25,7 @@
     (is (nil? (:kids @u)))
     (let [kc (md-cell u :kids)
           kon (md-cell u :kon)]
-      (trx :kon-1 kon @kon)
-      (doall (for [u (vec (:useds @kc))]
-               (trx :xu!!!!!!!!! (:slot @u))))
-      (trx :kon-set!!! @kon)
       (c-reset! kon true)
-      (trx :kon-2 kon @kon)
-      ;;(is (:kon @u))
       (is (= 1 (count (:kids @u))))
       (is (fget :konzo u :inside? true))
       )))
@@ -72,7 +65,6 @@
     ;; (is (nil? (fget :bbax u :inside? true :must? false)))
     (let [bba (fget :bba u :inside? true :must? true)]
       (is bba)
-      (trx :bba! bba)
       (is (fm/fget :uni bba :inside? true :up? true))
       (is (fget :aa bba :inside? false :up? true))
       (is (fget :bb bba :inside? true :up? true))
@@ -94,7 +86,6 @@
                                :aa42 (c? (* 2 (mdv! :bb :bb21)))
                                :aa3 (c-in 3))
                               (when (md-get me :kon)
-                                (trx :kon-bingo! 42)
                                 (md/make
                                  :par me
                                  :name :konzo
@@ -107,7 +98,6 @@
     (is (= 42 (mdv! :aa :aa42 u)))
     (is (= 21 (mdv! :bb :bb21 u)))
     (is (nil? (fget :konzo u :must? false)))
-    (trx :kon-set!!! true)
     (c-reset! (md-cell u :kon) true)
     (is (:kon @u))
     (is (md-cell u :kon))
@@ -136,7 +126,6 @@
     (is (= 42 (mdv! :aa :aa42 u)))
     (is (= 21 (mdv! :bb :bb21 u)))
     (is (nil? (fget :konzo u :must? false)))
-    (trx :kon-set!!! true)
     (c-reset! (md-cell u :kon) true)
     (is (:kon @u))
     (is (md-cell u :kon))

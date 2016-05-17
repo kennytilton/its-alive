@@ -301,10 +301,4 @@
     (is (= 42 (c-get aa)))
     (println :aa @aa)
     (is (c-optimized-away? aa))
-    (trx :stte (c-state aa)(c-optimize aa)
-         (c-useds aa)(empty? (c-useds aa)))
     (is (= 42 @aa))))
-
-#_
-(let [kk (c? 42)]
-  (= 42 (c-get kk)))

@@ -49,9 +49,9 @@
    (for [slot (keys @me)]
      (let [c (slot (md-cz me))]
        (cond
-         c (do (trx :slot-c slot c)
+         c (do ;(trx :slot-c slot c)
                (c-awaken c))
-         :else (do (trx :noslot slot (slot @me) me)
+         :else (do ;(trx :noslot slot (slot @me) me)
                    (observe slot me (slot @me) unbound nil))))))
 
   (rmap-meta-setf [:state me] :awake)

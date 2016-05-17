@@ -170,7 +170,7 @@
      (when-not (c-current? c)
        (calculate-and-set c :fn-c-awaken nil)
        (when-not (c-optimized-away? c) ;; gets observed during opti-away
-         (trx :awk-not-opti (c-slot c)(c-value c))
+         ;(trx :awk-not-opti (c-slot c)(c-value c))
          (c-observe c unbound :c-formula-awk))))))
 
 ;; ------------------------------------------------------------
@@ -184,7 +184,7 @@
 (defn md-slot-value-store [me slot value]
   (assert me)
   (assert (any-ref? me))
-  (trx :mdsv-store slot (flz value))
+  ;(trx :mdsv-store slot (flz value))
   (rmap-setf [slot me] value))
 
 (defn c-value-assume
@@ -211,7 +211,7 @@
                   ;;
                   (rmap-setf [:value c] new-value)
                   (rmap-setf [:state c] :awake)
-                  (trx :new-vlue-installed (c-slot c) 
+                  #_(trx :new-vlue-installed (c-slot c) 
                        new-value
                        (:value c))
                   ;; 
@@ -342,11 +342,11 @@ then clear our record of them."
     [(when me (type @me)) slot]))
      
 (defmethod unchanged-test :default [self slotname]
-  (trx :std-unchanged slotname)
+  ;;(trx :std-unchanged slotname)
   =)
 
 (defn c-value-changed? [c new-value old-value]
-  (trx :unchanged? (:slot @c) new-value old-value)
+  ;(trx :unchanged? (:slot @c) new-value old-value)
   (not ((or (:unchanged-if @c)
             (unchanged-test (c-model c) (c-slot c)))
         new-value old-value)))
