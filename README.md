@@ -282,3 +282,95 @@ That is all a bit silly because we left out the bit where the alarm has a microp
  :r-response: hello, world
  ```
 Next up (in a few days, after I finish a neat coding interview exercise): modelling.
+
+#### Hello, Model!
+So far it has been fun playing with standalone Cells, which is a new feature for the Clojure version. Hoplon/Javelin did that and it turned out to be easy so why not? But the world is made of entities with one or more attributes, so without making a big deal about OOP per se let us take a look (pretty much) the same example using aggregates of Cells, or *models*. This is an annotated version of the last test in model_test.clj:
+
+``` clojure
+(deftest hello-model
+  (let [uni (md/make
+             ::fm/family
+             :kids (c? (the-kids
+```
+`make` returns a `ref` holding a map of all the key-values supplied, with the caveat that if as here the argument list has an odd count the first gets installed as the :type in the `meta`. Or we could just do here `:type ::fm/family` with the same effect. `make` does quite a bit as advertised above, including bring all the cells to life so we need not bother any longer with `c-awaken`. It also shunts the cells off into the `meta` of the ref so the map just magically holds the values supplied or calculated for each key.
+
+But, hey, I did not mean this to be a complete reference, so let's skim a little faster.
+
+`kids` is a super big deal. *IA!* modelling is about a tree (a DAG, in fact) of model aggregates of cells variously but not cyclically dependent on each other. (Doing the latter is caught at run time.) Crucially, the kids of any given family are computed based on other data and can vary over time, and *IA!* takes care of ushering models onto and off the stage gracefully.
+
+`the-kids` makes this easier by binding `*par*` to the parent so we need not specify `:par me` on each call to make. It also flattens the input (which gets wrapped in `(list ...)` so we can code up a nested list of models if that is more convenient.
+
+``` clojure
+                        (md/make
+                         :name :visitor
+                         :moniker "World"
+                         :action (c-in nil 
+                                       :ephemeral? true
+                                       :obs (fn [slot me new old c]
+                                              (when new (trx visitor-did new)))))
+                        (md/make
+                         :name :resident
+                         :action (c-in nil :ephemeral? true)
+                         :location (c?+ [:obs (fn-obs (when new (trx :honey-im new)))]
+                                        (case (md-get me :action)
+                                          :leave :away
+                                          :return :home
+                                          :missing))
+```
+`md-get` does all the heavy lifting to locate the associated cell (if there is one) and get the current data-consistent value.
+```
+                         :response (c?+ [:obs (fn-obs (when new
+                                                        (trx :r-response new)))
+                                         :ephemeral? true]
+                                        (when (= :home (md-get me :location))
+                                          (when-let [act (mdv! :visitor :action)]
+```
+`mdv!` could be written as `(md-get (fm! :visitor) :action)`. What is going on here is that we need a handy way to reference a cell of some other model we know is out there. In this case we are doing it by `:name`, but more often I myself these days happen to search by type. A good example is a selectable item being clicked and informing it selection manager that it is now the selection, finding that manager by searching up the family tree for the first of type, say, `selection-mgr`.
+
+The rest should be familiar from our earlier discussion of cells.
+
+```
+                                            (case act
+                                              :knock-knock "hello, world")))))
+                        (md/make
+                         :name :alarm
+                         :on-off (c?+ [:obs (fn-obs
+                                             (trx :telling-alarm-api new))]
+                                      (if (= :home (mdv! :resident :location)) :off :on))
+                         :activity (c?+ [:obs (fn-obs
+                                               (case new
+                                                 :call-police (trx :auto-dialing-911)
+                                                 nil))]
+                                        (when (= :on (md-get me :on-off))
+                                          (when-let [action (mdv! :visitor :action)]
+                                            (case action
+                                              :smashing-window :call-police
+                                              nil))))))))]
+    (let [viz (fm! :visitor uni)
+          rez (fm! :resident uni)]
+      (is (not (nil? viz)))
+      (is (not (nil? rez)))
+      (is (not (nil? (md-cell rez :action))))
+      (is (= :missing (mdv! :resident :location uni)))
+      (md-reset! viz :action :knock-knock)
+      (md-reset! viz :action :smashing-window)
+      (is (not (nil? (md-cell rez :action))))
+      (md-reset! rez :action :return)
+      (is (= :home (mdv! :resident :location uni)))
+      (md-reset! viz :action :knock-knock))))
+```
+
+Results as before:
+```
+:honey-im: :missing
+ :telling-alarm-api: :on
+ visitor-did: :knock-knock
+ visitor-did: :smashing-window
+ :auto-dialing-911: 
+ :honey-im: :home
+ :telling-alarm-api: :off
+ visitor-did: :knock-knock
+ :r-response: hello, world
+ ```
+#### Next Up?
+Not sure. I am tempted to try a port to clojurescript if it turns out to be as straightforward as I think. Then it is time to apply *IA!* to Web application development, starting with *qooxdoo* backend, and then one with *ReactJS*.
