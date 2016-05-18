@@ -284,7 +284,7 @@ That is all a bit silly because we left out the bit where the alarm has a microp
 Next up (in a few days, after I finish a neat coding interview exercise): modelling.
 
 #### Hello, Model!
-So far it has been fun playing with standalone Cells, which is a new feature for the Clojure version. Hoplon/Javelin did that and it turned out to be easy so why not? But the world is made of entities with one or more attributes, so without making a big deal about OOP per se let us take a look (pretty much) the same example using aggregates of Cells, or *models*. This is an annotated version of the last test in model_test.clj:
+So far it has been fun playing with standalone Cells, which is a new feature for the Clojure version. Hoplon/Javelin did that and it turned out to be easy so why not? But the world is made of entities with one or more attributes, so without making a big deal about OOP per se let us take a look at the same example using aggregates of Cells, or *models*. The following is an annotated version of the last test in model_test.clj:
 
 ``` clojure
 (deftest hello-model
@@ -292,13 +292,15 @@ So far it has been fun playing with standalone Cells, which is a new feature for
              ::fm/family
              :kids (c? (the-kids
 ```
-`make` returns a `ref` holding a map of all the key-values supplied, with the caveat that if as here the argument list has an odd count the first gets installed as the :type in the `meta`. Or we could just do here `:type ::fm/family` with the same effect. `make` does quite a bit as advertised above, including bring all the cells to life so we need not bother any longer with `c-awaken`. It also shunts the cells off into the `meta` of the ref so the map just magically holds the values supplied or calculated for each key.
+`make` returns a `ref` holding a map of all the key-values supplied, with the caveat that if as here the argument list has an odd count the first gets installed as the :type in the `meta`. We could just do `:type ::fm/family` with the same effect. `make` does quite a bit as advertised above, including bring all the cells to life so we need not bother any longer with `c-awaken`. It also shunts the cells off into the `meta` of the ref so the map just magically holds the values supplied or calculated for each key.
 
 But, hey, I did not mean this to be a complete reference, so let's skim a little faster.
 
-`kids` is a super big deal. *IA!* modelling is about a tree (a DAG, in fact) of model aggregates of cells variously but not cyclically dependent on each other. (Doing the latter is caught at run time.) Crucially, the kids of any given family are computed based on other data and can vary over time, and *IA!* takes care of ushering models onto and off the stage gracefully.
+`kids` is a super big deal. *IA!* modelling is about a tree (a DAG, in fact) of model aggregates of cells variously but not cyclically dependent on each other. (Cyclic is caught at run time.) Crucially, the kids of any given family are computed based on other data and can vary over time, and *IA!* takes care of ushering models onto and off the stage gracefully.
 
-`the-kids` makes this easier by binding `*par*` to the parent so we need not specify `:par me` on each call to make. It also flattens the input (which gets wrapped in `(list ...)` so we can code up a nested list of models if that is more convenient.
+In this case the list of kids is unconditional, but computing the list in a cell rule means the owning model `me` already exists and can be passed in as parent to `make`. In general, one of the incidental wins of *IA!* is that ruled cells allow us to initialize models with values to be computed with awareness of surrounding state. I digress.
+
+`the-kids` handles a bit of boilerplate, binding `*par*` to the parent so we need not specify `:par me` on each call to make. It also flattens the input (which gets wrapped in `(list ...)` so we can code up a nested list of models if that is more convenient knowing `the-kids` will do the flattening.
 
 ``` clojure
                         (md/make
@@ -317,7 +319,7 @@ But, hey, I did not mean this to be a complete reference, so let's skim a little
                                           :return :home
                                           :missing))
 ```
-`md-get` does all the heavy lifting to locate the associated cell (if there is one) and get the current data-consistent value.
+`md-get` locates the associated cell (if there is one) and `c-get`s the current data-consistent value.
 ```
                          :response (c?+ [:obs (fn-obs (when new
                                                         (trx :r-response new)))
@@ -325,9 +327,9 @@ But, hey, I did not mean this to be a complete reference, so let's skim a little
                                         (when (= :home (md-get me :location))
                                           (when-let [act (mdv! :visitor :action)]
 ```
-`mdv!` could be written as `(md-get (fm! :visitor) :action)`. What is going on here is that we need a handy way to reference a cell of some other model we know is out there. In this case we are doing it by `:name`, but more often I myself these days happen to search by type. A good example is a selectable item being clicked and informing it selection manager that it is now the selection, finding that manager by searching up the family tree for the first of type, say, `selection-mgr`.
+`mdv!` could be written as `(md-get (fm! :visitor) :action)`, where `fm!` is a `::fm/family` utility for searching the family tree for a given family member. What is going on here is that we need a handy way to reference a cell of some other model we know is out there. 
 
-The rest should be familiar from our earlier discussion of cells.
+In this case we are doing it by `:name`, but more often these days I find myself searching by type, so soon enough we will extend `fm!` to accept a type (defined as a member of the `cell_types/ia_types` type hierarchy) and support search by `isa?`. A good use case for search by type is a selectable item being clicked and informing its selection manager that it is now the selection, finding that manager by searching up the GUI widget family tree for the first container of type, say, `selection-mgr`.
 
 ```
                                             (case act
