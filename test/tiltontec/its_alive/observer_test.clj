@@ -72,3 +72,26 @@
      ;; (is (= 30 @cobs))
      )))
 
+
+
+(def obj Object)
+
+(defmacro get-obj []
+  `obj)
+
+(defmulti speak (fn [one two] [(type one)(type two)]))
+
+(derive ::dog ::animal)
+(derive ::cat ::animal)
+
+(defmethod speak [::dog Object] [_ _]
+  (println :woof))
+
+(speak (atom nil :meta {:type ::dog}) 42)
+
+(defmethod speak [::cat obj] [_ _]
+  (println :meow))
+
+(speak (atom nil :meta {:type ::cat}) 42)
+
+;; (def gotten-obj (obj/get-obj))

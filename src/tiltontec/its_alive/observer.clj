@@ -25,6 +25,7 @@
              :else me)
            new-val old-val c))
 
+
 (defmacro defobserver [slot types params & body]
   (assert (keyword? slot) "defobserver> slot should be a keyword.")
   (let [ftypes (concat types (take-last (- 3 (count types))
@@ -34,6 +35,7 @@
                                    '(me new-value old-value c)))]
     `(defmethod tiltontec.its-alive.observer/observe [~slot ~@ftypes][~'slot ~@fparams]
        ~@body)))
+
 
 (defmacro fn-obs
   "Shortcut definer for cell-specific observers. 
