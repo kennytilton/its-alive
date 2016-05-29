@@ -1,4 +1,6 @@
-# It's Alive!
+# It's Alive! (deprecated)
+[Please follow https://github.com/kennytilton/rube where Cells has now been ported to CLJ and CLJS and is growing a mobile app framework Qxia.]
+
 Welcome to *It's Alive!*, a model-building paradigm atop Clojure or Common Lisp that has been applied successfully to several real-world applications, including enterprise Web applications, desktop applications, and distributed computing. 
 
 In the modelling paradigm we declaratively specify models which run by themselves acting on the world via APIs when first instantiated and then stimulated by input piped into the model by a straightforward supervisor polling an event loop, a socket, AJAX requests, database notifications, or whatever. 
