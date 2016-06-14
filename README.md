@@ -378,3 +378,5 @@ Results as before:
  ```
 #### Next Up?
 Not sure. I am tempted to try a port to clojurescript if it turns out to be as straightforward as I think. Then it is time to apply *IA!* to Web application development, starting with *qooxdoo* backend, and then one with *ReactJS*.
+
+[Crystall ball not too shabby: The ClojureScript port went so well I decided to wrap qooxdoo mobile instead of qooxdoo desktop: https://github.com/kennytilton/rube. Just starting now on a tutorial for that. See you over at Rube.]
