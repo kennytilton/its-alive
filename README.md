@@ -1,5 +1,5 @@
 # It's Alive! (original, Clojure-only port of Lisp Cells. Now deprecated)
-[Please follow https://github.com/kennytilton/rube where Cells has now been ported to CLJ and CLJS and is growing a mobile app framework Qxia.]
+[Please follow https://github.com/kennytilton/matrix/tree/main/cljs/matrix where Cells has now been ported to CLJ and CLJS and is growing a mobile app framework mxWeb.]
 
 Welcome to *It's Alive!*, a model-building paradigm atop Clojure or Common Lisp that has been applied successfully to several real-world applications, including enterprise Web applications, desktop applications, and distributed computing. 
 
